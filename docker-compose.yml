@@ -1,0 +1,18 @@
+services:
+  garsync:
+    build: .
+    image: garsync:latest
+    container_name: garsync
+    volumes:
+      - ./data:/app/data
+
+  ui:
+    image: python:3.12-alpine
+    container_name: garsync-ui
+    volumes:
+      - ./data:/app/data
+      - ./html:/app/html
+    ports:
+      - "8501:8501"
+    working_dir: /app
+    command: ["python", "-m", "http.server", "8501", "--directory", "html"]

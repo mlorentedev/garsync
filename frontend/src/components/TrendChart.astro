@@ -1,0 +1,102 @@
+---
+---
+
+<div class="card p-5">
+  <h2 class="text-lg font-semibold mb-4 text-slate-200 flex items-center gap-2">
+    <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+    Resting Heart Rate Trend
+  </h2>
+  <div class="relative h-64 w-full">
+    <canvas id="trend-chart"></canvas>
+  </div>
+</div>
+
+<style>
+  .card {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  }
+</style>
+
+<script>
+  import { Chart } from "chart.js/auto";
+  import { api } from "../lib/api";
+  import { formatChartDate } from "../lib/format";
+  import { applyChartDefaults, darkLegend } from "../lib/chartDefaults";
+  import { $dateRange } from "../lib/stores";
+
+  applyChartDefaults();
+
+  let chart: Chart | null = null;
+
+  async function renderChart() {
+    const canvas = document.getElementById("trend-chart") as HTMLCanvasElement | null;
+    if (!canvas) return;
+
+    try {
+      const range = $dateRange.get();
+      const bio = await api.biometrics(range.start, range.end);
+      const sorted = [...bio.metrics].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+
+      const labels = sorted.map((d) => formatChartDate(d.date));
+      const rhrData = sorted.map((d) => d.resting_heart_rate);
+
+      if (chart) chart.destroy();
+
+      chart = new Chart(canvas, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Resting HR",
+              data: rhrData,
+              borderColor: "#fb7185",
+              backgroundColor: "#fb718520",
+              borderWidth: 3,
+              pointBackgroundColor: "#fb7185",
+              pointBorderColor: "#0f172a",
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              tension: 0.4,
+              fill: true,
+              spanGaps: true,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          scales: {
+            x: { grid: { color: "#334155" } },
+            y: {
+              grid: { color: "#334155" },
+              title: { display: true, text: "bpm", color: "#64748b" },
+            },
+          },
+          plugins: {
+            legend: darkLegend,
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${ctx.raw} bpm`,
+              },
+            },
+          },
+        },
+      });
+    } catch {
+      const ctx = canvas?.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillText("Failed to load chart data", 10, 30);
+      }
+    }
+  }
+
+  $dateRange.subscribe(() => renderChart());
+</script>

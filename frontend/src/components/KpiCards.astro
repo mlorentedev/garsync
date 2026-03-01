@@ -1,0 +1,121 @@
+---
+---
+
+<div id="kpi-cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+  <div class="kpi-skeleton card p-5 animate-pulse h-28"></div>
+  <div class="kpi-skeleton card p-5 animate-pulse h-28"></div>
+  <div class="kpi-skeleton card p-5 animate-pulse h-28"></div>
+  <div class="kpi-skeleton card p-5 animate-pulse h-28"></div>
+</div>
+
+<style>
+  .card {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    transition: transform 0.2s;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+  }
+</style>
+
+<script>
+  import { api } from "../lib/api";
+  import { formatDuration, formatDistance, escapeHtml } from "../lib/format";
+  import { $dateRange } from "../lib/stores";
+
+  function formatHrvColor(val: string): string {
+    const lower = val.toLowerCase();
+    if (lower.includes("balanced") || lower.includes("optimal"))
+      return "text-green-400";
+    if (lower.includes("unbalanced") || lower.includes("low"))
+      return "text-orange-400";
+    return "text-blue-400";
+  }
+
+  function createKpiCard(
+    borderColor: string,
+    label: string,
+    value: string,
+    valueClass: string,
+    subtitle?: string,
+  ): HTMLDivElement {
+    const card = document.createElement("div");
+    card.className = `card p-5 border-t-4 ${borderColor} flex flex-col justify-center`;
+
+    const labelEl = document.createElement("div");
+    labelEl.className = "text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2";
+    labelEl.textContent = label;
+
+    const valueEl = document.createElement("div");
+    valueEl.className = `text-3xl md:text-4xl font-bold ${valueClass} truncate`;
+    valueEl.textContent = value;
+
+    card.appendChild(labelEl);
+    card.appendChild(valueEl);
+
+    if (subtitle) {
+      const subEl = document.createElement("div");
+      subEl.className = "text-xs text-slate-500 mt-1";
+      subEl.textContent = subtitle;
+      card.appendChild(subEl);
+    }
+
+    return card;
+  }
+
+  async function renderKpis() {
+    const container = document.getElementById("kpi-cards");
+    if (!container) return;
+
+    try {
+      const range = $dateRange.get();
+      const [summary, bio] = await Promise.all([
+        api.statsSummary("month"),
+        api.biometrics(range.start, range.end),
+      ]);
+
+      let latestRHR: number | null = null;
+      let latestHRV: string | null = null;
+      for (let i = bio.metrics.length - 1; i >= 0; i--) {
+        if (latestRHR === null && bio.metrics[i].resting_heart_rate !== null)
+          latestRHR = bio.metrics[i].resting_heart_rate;
+        if (latestHRV === null && bio.metrics[i].hrv_balance !== null)
+          latestHRV = bio.metrics[i].hrv_balance;
+      }
+
+      const rhrDisplay = latestRHR !== null ? `${latestRHR} bpm` : "--";
+      const hrvDisplay = latestHRV !== null ? escapeHtml(latestHRV) : "--";
+      const hrvColor = latestHRV ? formatHrvColor(latestHRV) : "text-slate-500";
+
+      container.replaceChildren(
+        createKpiCard(
+          "border-t-orange-500",
+          "Activities",
+          String(summary.total_activities),
+          "text-white",
+          formatDuration(summary.total_duration_seconds),
+        ),
+        createKpiCard(
+          "border-t-blue-500",
+          "Distance",
+          formatDistance(summary.total_distance_meters),
+          "text-white",
+          `${Math.round(summary.total_calories)} cal`,
+        ),
+        createKpiCard("border-t-rose-500", "Resting HR", rhrDisplay, "text-white"),
+        createKpiCard("border-t-emerald-500", "HRV Status", hrvDisplay, `capitalize ${hrvColor}`),
+      );
+    } catch {
+      container.replaceChildren();
+      const err = document.createElement("div");
+      err.className = "col-span-4 text-center text-slate-500 py-4";
+      err.textContent = "Failed to load KPIs";
+      container.appendChild(err);
+    }
+  }
+
+  $dateRange.subscribe(() => renderKpis());
+</script>

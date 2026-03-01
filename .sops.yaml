@@ -1,0 +1,4 @@
+creation_rules:
+  # This is your PUBLIC key. It is safe to commit.
+  - path_regex: \.env$|secrets\.env\.enc$
+    age: "age166v8efpskctmxxes5lcqpxkj0ny3q74l3v0pswpdpa63wlkqmc8q35fkdw"

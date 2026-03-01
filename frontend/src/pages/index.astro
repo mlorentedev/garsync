@@ -1,0 +1,50 @@
+---
+import Layout from "../layouts/Layout.astro";
+import SyncBadge from "../components/SyncBadge.astro";
+import DateRangePicker from "../components/DateRangePicker.astro";
+import KpiCards from "../components/KpiCards.astro";
+import Heatmap from "../components/Heatmap.astro";
+import TrendChart from "../components/TrendChart.astro";
+import ActivityTable from "../components/ActivityTable.astro";
+---
+
+<Layout>
+  <!-- Header -->
+  <header
+    class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-700 pb-4"
+  >
+    <div>
+      <h1 class="text-3xl font-bold text-blue-400 flex items-center gap-2">
+        <svg
+          class="w-8 h-8"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+        </svg>
+        GarSync Dashboard
+      </h1>
+      <SyncBadge />
+    </div>
+    <DateRangePicker />
+  </header>
+
+  <!-- KPI Cards -->
+  <KpiCards />
+
+  <!-- Heatmap -->
+  <Heatmap />
+
+  <!-- Trend Chart -->
+  <div class="mb-8">
+    <TrendChart />
+  </div>
+
+  <!-- Activities -->
+  <ActivityTable />
+</Layout>

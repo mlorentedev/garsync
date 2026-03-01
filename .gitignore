@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+__pycache__/
+.venv/
+vendor/
+
+# Build
+dist/
+build/
+bin/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Claude Code
+.claude/
+
+# Environment
+.env
+.env.local
+.env.tmp
+*.secret
+key.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data / DB
+data/
+*.db
+
+# Astro / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.astro/
+
+# Test/Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+coverage.out

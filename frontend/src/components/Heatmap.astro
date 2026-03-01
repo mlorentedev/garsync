@@ -1,0 +1,155 @@
+---
+---
+
+<div class="card p-5 mb-8">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-semibold text-slate-200 flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+      Activity Heatmap
+    </h2>
+    <div class="flex items-center gap-2">
+      <button id="heatmap-prev" class="text-slate-400 hover:text-slate-200 p-1">&larr;</button>
+      <span id="heatmap-year" class="text-sm text-slate-300 font-medium tabular-nums w-12 text-center"></span>
+      <button id="heatmap-next" class="text-slate-400 hover:text-slate-200 p-1">&rarr;</button>
+    </div>
+  </div>
+
+  <div class="flex gap-1">
+    <div class="flex flex-col gap-[3px] text-xs text-slate-500 pr-1 pt-[2px]">
+      <span class="h-[13px]"></span>
+      <span class="h-[13px] leading-[13px]">Mon</span>
+      <span class="h-[13px]"></span>
+      <span class="h-[13px] leading-[13px]">Wed</span>
+      <span class="h-[13px]"></span>
+      <span class="h-[13px] leading-[13px]">Fri</span>
+      <span class="h-[13px]"></span>
+    </div>
+    <div id="heatmap-grid" class="flex gap-[3px] overflow-x-auto"></div>
+  </div>
+
+  <div class="flex items-center gap-2 mt-3 text-xs text-slate-500 justify-end">
+    <span>Less</span>
+    <span class="w-[13px] h-[13px] rounded-sm bg-[#1e293b] border border-slate-700"></span>
+    <span class="w-[13px] h-[13px] rounded-sm bg-[#064e3b]"></span>
+    <span class="w-[13px] h-[13px] rounded-sm bg-[#065f46]"></span>
+    <span class="w-[13px] h-[13px] rounded-sm bg-[#047857]"></span>
+    <span class="w-[13px] h-[13px] rounded-sm bg-[#059669]"></span>
+    <span class="w-[13px] h-[13px] rounded-sm bg-[#10b981]"></span>
+    <span>More</span>
+  </div>
+
+  <div id="heatmap-stats" class="text-xs text-slate-500 mt-2"></div>
+</div>
+
+<style>
+  .card {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  }
+</style>
+
+<script>
+  import { api, type HeatmapDay } from "../lib/api";
+
+  const COLORS = ["#1e293b", "#064e3b", "#065f46", "#047857", "#059669", "#10b981"];
+
+  let currentYear = new Date().getFullYear();
+
+  function buildDayMap(days: HeatmapDay[]): Map<string, HeatmapDay> {
+    const map = new Map<string, HeatmapDay>();
+    for (const d of days) map.set(d.date, d);
+    return map;
+  }
+
+  function createCell(color: string, border: string, tooltip: string): HTMLDivElement {
+    const cell = document.createElement("div");
+    cell.style.width = "13px";
+    cell.style.height = "13px";
+    cell.style.borderRadius = "2px";
+    cell.style.backgroundColor = color;
+    cell.style.border = border;
+    cell.title = tooltip;
+    return cell;
+  }
+
+  async function render(year: number) {
+    const yearEl = document.getElementById("heatmap-year");
+    const gridEl = document.getElementById("heatmap-grid");
+    const statsEl = document.getElementById("heatmap-stats");
+    if (!yearEl || !gridEl || !statsEl) return;
+
+    yearEl.textContent = String(year);
+    gridEl.replaceChildren();
+
+    const loading = document.createElement("div");
+    loading.className = "text-slate-500 text-sm py-4";
+    loading.textContent = "Loading...";
+    gridEl.appendChild(loading);
+
+    try {
+      const data = await api.heatmap(year);
+      const dayMap = buildDayMap(data.days);
+
+      gridEl.replaceChildren();
+
+      const jan1 = new Date(year, 0, 1);
+      const startDow = jan1.getDay();
+      const startDate = new Date(jan1);
+      startDate.setDate(startDate.getDate() - startDow);
+
+      for (let week = 0; week < 53; week++) {
+        const col = document.createElement("div");
+        col.style.display = "flex";
+        col.style.flexDirection = "column";
+        col.style.gap = "3px";
+
+        for (let dow = 0; dow < 7; dow++) {
+          const cellDate = new Date(startDate);
+          cellDate.setDate(cellDate.getDate() + week * 7 + dow);
+          const iso = cellDate.toISOString().slice(0, 10);
+          const cellYear = cellDate.getFullYear();
+
+          if (cellYear !== year) {
+            col.appendChild(createCell("transparent", "none", ""));
+            continue;
+          }
+
+          const entry = dayMap.get(iso);
+          const level = entry ? entry.intensity_level : 0;
+          const color = COLORS[level];
+          const border = level === 0 ? "1px solid #334155" : "1px solid transparent";
+          const tooltip = entry
+            ? `${iso}: ${entry.activity_count} activit${entry.activity_count === 1 ? "y" : "ies"}`
+            : `${iso}: No activity`;
+
+          col.appendChild(createCell(color, border, tooltip));
+        }
+
+        gridEl.appendChild(col);
+      }
+
+      const s = data.statistics;
+      statsEl.textContent = `${s.total_active_days} active days \u00B7 ${s.total_activities} total activities`;
+    } catch {
+      gridEl.replaceChildren();
+      const err = document.createElement("div");
+      err.className = "text-red-400 text-sm py-4";
+      err.textContent = "Failed to load heatmap";
+      gridEl.appendChild(err);
+    }
+  }
+
+  document.getElementById("heatmap-prev")?.addEventListener("click", () => {
+    currentYear--;
+    render(currentYear);
+  });
+
+  document.getElementById("heatmap-next")?.addEventListener("click", () => {
+    currentYear++;
+    render(currentYear);
+  });
+
+  render(currentYear);
+</script>

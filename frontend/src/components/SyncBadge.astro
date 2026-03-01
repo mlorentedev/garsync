@@ -1,0 +1,39 @@
+---
+---
+
+<p id="sync-badge" class="text-slate-400 text-sm mt-1">Loading sync status...</p>
+
+<script>
+  import { api } from "../lib/api";
+  import { formatDateTime, escapeHtml } from "../lib/format";
+
+  async function loadSyncStatus() {
+    const el = document.getElementById("sync-badge");
+    if (!el) return;
+
+    try {
+      const status = await api.syncStatus();
+      const time = escapeHtml(formatDateTime(status.last_sync_time));
+
+      // Build DOM safely
+      el.textContent = "";
+
+      const prefix = document.createTextNode("Last sync: ");
+      const timeSpan = document.createElement("span");
+      timeSpan.className = "text-slate-200 font-medium";
+      timeSpan.textContent = time;
+      const suffix = document.createTextNode(
+        ` \u00B7 ${status.total_activities} activities \u00B7 ${status.total_biometrics} biometrics`
+      );
+
+      el.appendChild(prefix);
+      el.appendChild(timeSpan);
+      el.appendChild(suffix);
+    } catch {
+      el.textContent = "Unable to reach API";
+      el.classList.add("text-red-400");
+    }
+  }
+
+  loadSyncStatus();
+</script>

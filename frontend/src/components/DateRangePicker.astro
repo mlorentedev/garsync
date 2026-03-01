@@ -1,0 +1,78 @@
+---
+---
+
+<div class="flex flex-wrap items-center gap-2">
+  <div class="flex gap-1 text-sm">
+    <button data-preset="7" class="preset-btn bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1.5 rounded-lg transition">7d</button>
+    <button data-preset="30" class="preset-btn bg-slate-600 text-white px-3 py-1.5 rounded-lg transition">30d</button>
+    <button data-preset="90" class="preset-btn bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1.5 rounded-lg transition">90d</button>
+  </div>
+  <div class="flex items-center gap-1 text-sm">
+    <input
+      type="date"
+      id="range-start"
+      class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-2 py-1.5 text-sm"
+    />
+    <span class="text-slate-500">to</span>
+    <input
+      type="date"
+      id="range-end"
+      class="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-2 py-1.5 text-sm"
+    />
+  </div>
+</div>
+
+<script>
+  import { $dateRange, setDateRange } from "../lib/stores";
+
+  const startInput = document.getElementById("range-start") as HTMLInputElement;
+  const endInput = document.getElementById("range-end") as HTMLInputElement;
+  const presetBtns = document.querySelectorAll<HTMLButtonElement>(".preset-btn");
+
+  function highlightPreset(days: number | null) {
+    presetBtns.forEach((btn) => {
+      const d = Number(btn.dataset.preset);
+      if (d === days) {
+        btn.classList.replace("bg-slate-700", "bg-slate-600");
+        btn.classList.add("text-white");
+        btn.classList.remove("text-slate-300");
+      } else {
+        btn.classList.replace("bg-slate-600", "bg-slate-700");
+        btn.classList.remove("text-white");
+        btn.classList.add("text-slate-300");
+      }
+    });
+  }
+
+  // Sync inputs with store
+  $dateRange.subscribe((range) => {
+    startInput.value = range.start;
+    endInput.value = range.end;
+  });
+
+  // Preset buttons
+  presetBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const days = Number(btn.dataset.preset);
+      const end = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - days);
+      setDateRange(start.toISOString().slice(0, 10), end.toISOString().slice(0, 10));
+      highlightPreset(days);
+    });
+  });
+
+  // Manual date inputs
+  function onManualChange() {
+    if (startInput.value && endInput.value) {
+      setDateRange(startInput.value, endInput.value);
+      highlightPreset(null);
+    }
+  }
+
+  startInput.addEventListener("change", onManualChange);
+  endInput.addEventListener("change", onManualChange);
+
+  // Initialize with 30d highlighted
+  highlightPreset(30);
+</script>

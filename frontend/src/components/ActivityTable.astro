@@ -1,0 +1,213 @@
+---
+---
+
+<div class="card overflow-hidden">
+  <div class="p-5 border-b border-slate-700">
+    <h2 class="text-lg font-semibold text-slate-200 flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-orange-400"></span>
+      Recent Activities
+    </h2>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-800/50 text-slate-400">
+        <tr>
+          <th class="p-4 font-medium">Date</th>
+          <th class="p-4 font-medium">Activity</th>
+          <th class="p-4 font-medium text-right">Duration</th>
+          <th class="p-4 font-medium text-right">Distance</th>
+          <th class="p-4 font-medium text-right">Avg HR</th>
+          <th class="p-4 font-medium text-right">Calories</th>
+        </tr>
+      </thead>
+      <tbody id="activities-body" class="divide-y divide-slate-700/50">
+        <tr>
+          <td colspan="6" class="p-8 text-center text-slate-500">Loading activities...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div id="load-more-row" class="hidden p-4 text-center border-t border-slate-700">
+    <button
+      id="load-more-btn"
+      class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition"
+    >
+      Load More
+    </button>
+  </div>
+</div>
+
+<style>
+  .card {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  }
+</style>
+
+<script>
+  import { api, type ActivityItem } from "../lib/api";
+  import {
+    formatDate,
+    formatDuration,
+    formatDistance,
+    activityIcon,
+  } from "../lib/format";
+  import { $dateRange } from "../lib/stores";
+
+  let currentPage = 1;
+  const PAGE_SIZE = 20;
+
+  function createCell(text: string, className: string): HTMLTableCellElement {
+    const td = document.createElement("td");
+    td.className = className;
+    td.textContent = text;
+    return td;
+  }
+
+  function buildRow(act: ActivityItem): HTMLTableRowElement {
+    const tr = document.createElement("tr");
+    tr.className = "hover:bg-slate-700/30 transition group";
+
+    // Date cell
+    const dateTd = document.createElement("td");
+    dateTd.className = "p-4 whitespace-nowrap";
+    const dateDiv = document.createElement("div");
+    dateDiv.className = "font-medium text-slate-200";
+    dateDiv.textContent = formatDate(act.start_time);
+    const timeDiv = document.createElement("div");
+    timeDiv.className = "text-xs text-slate-500";
+    timeDiv.textContent = act.start_time
+      ? new Date(act.start_time).toLocaleTimeString(undefined, {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "";
+    dateTd.appendChild(dateDiv);
+    dateTd.appendChild(timeDiv);
+    tr.appendChild(dateTd);
+
+    // Activity cell
+    const actTd = document.createElement("td");
+    actTd.className = "p-4";
+    const actFlex = document.createElement("div");
+    actFlex.className = "flex items-center gap-3";
+    const iconDiv = document.createElement("div");
+    iconDiv.className = "text-2xl opacity-80 group-hover:opacity-100 transition";
+    iconDiv.textContent = activityIcon(act.activity_type);
+    const textDiv = document.createElement("div");
+    const typeDiv = document.createElement("div");
+    typeDiv.className = "font-medium text-slate-200 capitalize";
+    typeDiv.textContent = (act.activity_type ?? "").replace(/_/g, " ");
+    const nameDiv = document.createElement("div");
+    nameDiv.className = "text-xs text-slate-400 truncate max-w-[200px]";
+    nameDiv.textContent = act.activity_name ?? "";
+    nameDiv.title = act.activity_name ?? "";
+    textDiv.appendChild(typeDiv);
+    textDiv.appendChild(nameDiv);
+    actFlex.appendChild(iconDiv);
+    actFlex.appendChild(textDiv);
+    actTd.appendChild(actFlex);
+    tr.appendChild(actTd);
+
+    // Duration
+    tr.appendChild(createCell(formatDuration(act.duration_seconds), "p-4 text-right text-slate-300 font-medium"));
+
+    // Distance
+    tr.appendChild(createCell(formatDistance(act.distance_meters), "p-4 text-right text-slate-300 font-medium"));
+
+    // Avg HR
+    const hrTd = document.createElement("td");
+    hrTd.className = "p-4 text-right";
+    if (act.average_heart_rate !== null) {
+      const hrSpan = document.createElement("span");
+      hrSpan.className = "text-rose-400 font-medium";
+      hrSpan.textContent = String(act.average_heart_rate);
+      hrTd.appendChild(hrSpan);
+    } else {
+      hrTd.textContent = "--";
+    }
+    tr.appendChild(hrTd);
+
+    // Calories
+    const calTd = document.createElement("td");
+    calTd.className = "p-4 text-right";
+    if (act.calories !== null) {
+      const calSpan = document.createElement("span");
+      calSpan.className = "text-orange-400";
+      calSpan.textContent = String(Math.round(act.calories));
+      calTd.appendChild(calSpan);
+    } else {
+      calTd.textContent = "--";
+    }
+    tr.appendChild(calTd);
+
+    return tr;
+  }
+
+  function buildEmptyRow(): HTMLTableRowElement {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 6;
+    td.className = "p-8 text-center text-slate-500";
+    td.textContent = "No activities in selected date range";
+    tr.appendChild(td);
+    return tr;
+  }
+
+  async function loadActivities(page: number, append: boolean = false) {
+    const tbody = document.getElementById("activities-body");
+    const loadMoreRow = document.getElementById("load-more-row");
+    if (!tbody || !loadMoreRow) return;
+
+    try {
+      const range = $dateRange.get();
+      const data = await api.activities({
+        page,
+        limit: PAGE_SIZE,
+        start_date: range.start,
+        end_date: range.end,
+      });
+
+      if (data.items.length === 0 && !append) {
+        tbody.replaceChildren(buildEmptyRow());
+        loadMoreRow.classList.add("hidden");
+        return;
+      }
+
+      const rows = data.items.map(buildRow);
+      if (append) {
+        for (const row of rows) tbody.appendChild(row);
+      } else {
+        tbody.replaceChildren(...rows);
+      }
+
+      if (data.has_more) {
+        loadMoreRow.classList.remove("hidden");
+      } else {
+        loadMoreRow.classList.add("hidden");
+      }
+    } catch {
+      if (!append) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 6;
+        td.className = "p-8 text-center text-red-400";
+        td.textContent = "Failed to load activities";
+        tr.appendChild(td);
+        tbody.replaceChildren(tr);
+      }
+    }
+  }
+
+  document.getElementById("load-more-btn")?.addEventListener("click", () => {
+    currentPage++;
+    loadActivities(currentPage, true);
+  });
+
+  $dateRange.subscribe(() => {
+    currentPage = 1;
+    loadActivities(1);
+  });
+</script>
