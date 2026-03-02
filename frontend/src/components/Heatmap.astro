@@ -132,12 +132,13 @@
 
       const s = data.statistics;
       statsEl.textContent = `${s.total_active_days} active days \u00B7 ${s.total_activities} total activities`;
-    } catch {
+    } catch (error) {
+      console.error("[Heatmap] Failed to load:", error);
       gridEl.replaceChildren();
-      const err = document.createElement("div");
-      err.className = "text-red-400 text-sm py-4";
-      err.textContent = "Failed to load heatmap";
-      gridEl.appendChild(err);
+      const errDiv = document.createElement("div");
+      errDiv.className = "text-red-400 text-sm py-4";
+      errDiv.textContent = "Failed to load heatmap";
+      gridEl.appendChild(errDiv);
     }
   }
 

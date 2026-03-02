@@ -29,7 +29,8 @@
       el.appendChild(prefix);
       el.appendChild(timeSpan);
       el.appendChild(suffix);
-    } catch {
+    } catch (err) {
+      console.error("[SyncBadge] Failed to load:", err);
       el.textContent = "Unable to reach API";
       el.classList.add("text-red-400");
     }

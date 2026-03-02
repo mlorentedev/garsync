@@ -188,16 +188,21 @@
       } else {
         loadMoreRow.classList.add("hidden");
       }
-    } catch {
+    } catch (err) {
+      console.error("[ActivityTable] Failed to load:", err);
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 6;
       if (!append) {
-        const tr = document.createElement("tr");
-        const td = document.createElement("td");
-        td.colSpan = 6;
         td.className = "p-8 text-center text-red-400";
         td.textContent = "Failed to load activities";
-        tr.appendChild(td);
         tbody.replaceChildren(tr);
+      } else {
+        td.className = "p-4 text-center text-red-400 text-sm";
+        td.textContent = "Failed to load more activities";
+        tbody.appendChild(tr);
       }
+      tr.appendChild(td);
     }
   }
 

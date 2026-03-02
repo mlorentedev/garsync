@@ -76,6 +76,25 @@ export interface HeatmapResponse {
   statistics: HeatmapStatistics;
 }
 
+export interface SleepItem {
+  date: string;
+  sleep_start: string | null;
+  sleep_end: string | null;
+  total_sleep_seconds: number | null;
+  deep_sleep_seconds: number | null;
+  light_sleep_seconds: number | null;
+  rem_sleep_seconds: number | null;
+  awake_sleep_seconds: number | null;
+  sleep_score: number | null;
+}
+
+export interface SleepResponse {
+  sleep_sessions: SleepItem[];
+  start_date: string;
+  end_date: string;
+  count: number;
+}
+
 export interface SyncStatus {
   last_sync_time: string | null;
   last_sync_status: string | null;
@@ -109,8 +128,8 @@ export const api = {
     end_date?: string;
   }) => {
     const params: Record<string, string> = {};
-    if (opts?.page) params.page = String(opts.page);
-    if (opts?.limit) params.limit = String(opts.limit);
+    if (opts?.page !== undefined) params.page = String(opts.page);
+    if (opts?.limit !== undefined) params.limit = String(opts.limit);
     if (opts?.start_date) params.start_date = opts.start_date;
     if (opts?.end_date) params.end_date = opts.end_date;
     return get<PaginatedActivities>("/api/activities", params);
@@ -124,6 +143,12 @@ export const api = {
 
   statsSummary: (period: string = "week") =>
     get<SummaryStats>("/api/stats/summary", { period }),
+
+  sleep: (startDate: string, endDate: string) =>
+    get<SleepResponse>("/api/sleep", {
+      start_date: startDate,
+      end_date: endDate,
+    }),
 
   heatmap: (year?: number) => {
     const params: Record<string, string> = {};

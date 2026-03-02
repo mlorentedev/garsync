@@ -89,11 +89,15 @@
           },
         },
       });
-    } catch {
-      const ctx = canvas?.getContext("2d");
-      if (ctx) {
-        ctx.fillStyle = "#94a3b8";
-        ctx.fillText("Failed to load chart data", 10, 30);
+    } catch (err) {
+      console.error("[TrendChart] Failed to render:", err);
+      const container = canvas?.parentElement;
+      if (container) {
+        container.replaceChildren();
+        const errDiv = document.createElement("div");
+        errDiv.className = "text-red-400 text-sm py-4 text-center";
+        errDiv.textContent = "Failed to load chart data";
+        container.appendChild(errDiv);
       }
     }
   }

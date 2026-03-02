@@ -23,17 +23,8 @@
 
 <script>
   import { api } from "../lib/api";
-  import { formatDuration, formatDistance, escapeHtml } from "../lib/format";
+  import { formatDuration, formatDistance } from "../lib/format";
   import { $dateRange } from "../lib/stores";
-
-  function formatHrvColor(val: string): string {
-    const lower = val.toLowerCase();
-    if (lower.includes("balanced") || lower.includes("optimal"))
-      return "text-green-400";
-    if (lower.includes("unbalanced") || lower.includes("low"))
-      return "text-orange-400";
-    return "text-blue-400";
-  }
 
   function createKpiCard(
     borderColor: string,
@@ -72,48 +63,91 @@
 
     try {
       const range = $dateRange.get();
-      const [summary, bio] = await Promise.all([
-        api.statsSummary("month"),
+      const [activities, bio] = await Promise.all([
+        api.activities({ start_date: range.start, end_date: range.end, limit: 1 }),
         api.biometrics(range.start, range.end),
       ]);
 
       let latestRHR: number | null = null;
-      let latestHRV: string | null = null;
       for (let i = bio.metrics.length - 1; i >= 0; i--) {
-        if (latestRHR === null && bio.metrics[i].resting_heart_rate !== null)
+        if (bio.metrics[i].resting_heart_rate !== null) {
           latestRHR = bio.metrics[i].resting_heart_rate;
-        if (latestHRV === null && bio.metrics[i].hrv_balance !== null)
-          latestHRV = bio.metrics[i].hrv_balance;
+          break;
+        }
       }
 
-      const rhrDisplay = latestRHR !== null ? `${latestRHR} bpm` : "--";
-      const hrvDisplay = latestHRV !== null ? escapeHtml(latestHRV) : "--";
-      const hrvColor = latestHRV ? formatHrvColor(latestHRV) : "text-slate-500";
+      const totalActs = activities.total;
+      const rhrDisplay = latestRHR !== null ? `${latestRHR}` : "--";
 
       container.replaceChildren(
         createKpiCard(
           "border-t-orange-500",
           "Activities",
-          String(summary.total_activities),
+          String(totalActs),
           "text-white",
-          formatDuration(summary.total_duration_seconds),
+          "in selected range",
         ),
         createKpiCard(
           "border-t-blue-500",
           "Distance",
-          formatDistance(summary.total_distance_meters),
+          "--",
           "text-white",
-          `${Math.round(summary.total_calories)} cal`,
         ),
-        createKpiCard("border-t-rose-500", "Resting HR", rhrDisplay, "text-white"),
-        createKpiCard("border-t-emerald-500", "HRV Status", hrvDisplay, `capitalize ${hrvColor}`),
+        createKpiCard(
+          "border-t-amber-500",
+          "Calories",
+          "--",
+          "text-white",
+        ),
+        createKpiCard("border-t-rose-500", "Resting HR", rhrDisplay, "text-white", rhrDisplay !== "--" ? "bpm" : ""),
       );
-    } catch {
+
+      // Fetch full page to compute distance + calories totals
+      if (totalActs > 0) {
+        const full = await api.activities({
+          start_date: range.start,
+          end_date: range.end,
+          limit: totalActs,
+        });
+        let totalDist = 0;
+        let totalCal = 0;
+        let totalDur = 0;
+        for (const a of full.items) {
+          if (a.distance_meters !== null) totalDist += a.distance_meters;
+          if (a.calories !== null) totalCal += a.calories;
+          if (a.duration_seconds !== null) totalDur += a.duration_seconds;
+        }
+        container.replaceChildren(
+          createKpiCard(
+            "border-t-orange-500",
+            "Activities",
+            String(totalActs),
+            "text-white",
+            formatDuration(totalDur),
+          ),
+          createKpiCard(
+            "border-t-blue-500",
+            "Distance",
+            formatDistance(totalDist),
+            "text-white",
+          ),
+          createKpiCard(
+            "border-t-amber-500",
+            "Calories",
+            `${Math.round(totalCal)}`,
+            "text-white",
+            "kcal",
+          ),
+          createKpiCard("border-t-rose-500", "Resting HR", rhrDisplay, "text-white", rhrDisplay !== "--" ? "bpm" : ""),
+        );
+      }
+    } catch (error) {
+      console.error("[KpiCards] Failed to load:", error);
       container.replaceChildren();
-      const err = document.createElement("div");
-      err.className = "col-span-4 text-center text-slate-500 py-4";
-      err.textContent = "Failed to load KPIs";
-      container.appendChild(err);
+      const errDiv = document.createElement("div");
+      errDiv.className = "col-span-4 text-center text-slate-500 py-4";
+      errDiv.textContent = "Failed to load KPIs";
+      container.appendChild(errDiv);
     }
   }
 
