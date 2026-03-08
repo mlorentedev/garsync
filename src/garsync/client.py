@@ -60,8 +60,10 @@ class GarminClient:
             try:
                 # Convert timestamp from Garmin format
                 start_time_str = raw.get("startTimeLocal", raw.get("startTimeGMT"))
-                start_time = datetime.datetime.fromisoformat(start_time_str) if start_time_str else None
-                
+                start_time = (
+                    datetime.datetime.fromisoformat(start_time_str) if start_time_str else None
+                )
+
                 activities.append(
                     NormalizedActivity(
                         activity_id=raw.get("activityId"),
@@ -142,7 +144,9 @@ class GarminClient:
 
             sleep_start = None
             if start_timestamp := daily_sleep.get("sleepStartTimestampGMT"):
-                sleep_start = datetime.datetime.fromtimestamp(start_timestamp / 1000.0, datetime.UTC)
+                sleep_start = datetime.datetime.fromtimestamp(
+                    start_timestamp / 1000.0, datetime.UTC
+                )
 
             sleep_end = None
             if end_timestamp := daily_sleep.get("sleepEndTimestampGMT"):

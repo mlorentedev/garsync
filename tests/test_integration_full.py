@@ -104,7 +104,9 @@ async def test_full_pipeline_sync_to_api(mock_garmin_data) -> None:
             assert data["items"][0]["activity_name"] == "Integration Run"
 
             # Check biometrics
-            resp = await client.get("/api/biometrics?start_date=2026-03-01&end_date=2026-03-31", headers=headers)
+            resp = await client.get(
+                "/api/biometrics?start_date=2026-03-01&end_date=2026-03-31", headers=headers
+            )
             assert resp.status_code == 200
             data = resp.json()
             assert data["count"] == 1

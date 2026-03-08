@@ -6,9 +6,9 @@ from pydantic import BaseModel, Field
 
 class NormalizedActivity(BaseModel):
     activity_id: int
-    activity_name: str
-    activity_type: str
-    start_time: datetime
+    activity_name: Optional[str] = None
+    activity_type: Optional[str] = None
+    start_time: Optional[datetime] = None
     duration_seconds: float
     distance_meters: Optional[float] = None
     average_heart_rate: Optional[int] = None

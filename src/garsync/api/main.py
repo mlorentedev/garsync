@@ -5,8 +5,9 @@ import sqlite3
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request, Response, status
+from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -40,20 +41,23 @@ def create_app(conn: sqlite3.Connection | None = None) -> FastAPI:
         app = FastAPI(title="GarSync API", version="0.1.0", lifespan=lifespan)
 
     # API Key Middleware
+    # API Key Middleware
     api_key = os.environ.get("GARSYNC_API_KEY", "dev_key")
 
     @app.middleware("http")
-    async def api_key_auth(request: Request, call_next) -> Response:
+    async def api_key_auth(request: Request, call_next: Any) -> Response:
         if request.url.path.startswith("/api/"):
             request_key = request.headers.get("X-API-KEY")
             if request_key != api_key:
                 # Direct response for middleware
                 from fastapi.responses import JSONResponse
+
                 return JSONResponse(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    content={"detail": "Invalid or missing API Key"}
+                    content={"detail": "Invalid or missing API Key"},
                 )
-        return await call_next(request)
+        res: Response = await call_next(request)
+        return res
 
     app.add_middleware(
         CORSMiddleware,

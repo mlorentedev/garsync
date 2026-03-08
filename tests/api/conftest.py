@@ -28,7 +28,8 @@ async def client(seeded_db: sqlite3.Connection):
     """httpx AsyncClient wired to an in-memory DB."""
     app = create_app(conn=seeded_db)
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as c:
+    headers = {"X-API-KEY": "dev_key"}
+    async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as c:
         yield c
 
 

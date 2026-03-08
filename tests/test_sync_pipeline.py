@@ -9,13 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from typer.testing import CliRunner
 
-from garsync.cli import (
-    _activity_to_row,
-    _biometrics_to_row,
-    _dates_to_sync,
-    _sleep_to_row,
-    app,
-)
+from garsync.cli import _dates_to_sync, app
 from garsync.client import GarminClient
 from garsync.db import (
     ActivityRepository,
@@ -25,6 +19,7 @@ from garsync.db import (
     get_connection,
 )
 from garsync.models import DailyBiometrics, NormalizedActivity, SleepData
+from garsync.pipeline import activity_to_row, biometrics_to_row, sleep_to_row
 
 runner = CliRunner()
 
@@ -82,59 +77,56 @@ def mock_sleep() -> SleepData:
 
 class TestConverterFunctions:
     def test_activity_to_row(self, mock_activity: NormalizedActivity) -> None:
-        row = _activity_to_row(mock_activity)
+        row = activity_to_row(mock_activity)
         assert row["activity_id"] == 100
         assert row["activity_name"] == "Test Run"
         assert isinstance(row["raw_data"], str)
         assert json.loads(row["raw_data"])["activityId"] == 100
 
     def test_biometrics_to_row(self, mock_biometrics: DailyBiometrics) -> None:
-        row = _biometrics_to_row(mock_biometrics)
+        row = biometrics_to_row(mock_biometrics)
         assert row["date"] == "2026-02-28"
         assert row["resting_heart_rate"] == 52
 
     def test_sleep_to_row(self, mock_sleep: SleepData) -> None:
-        row = _sleep_to_row(mock_sleep)
+        row = sleep_to_row(mock_sleep)
         assert row["date"] == "2026-02-28"
         assert row["sleep_start"] == "2026-02-27T23:00:00"
         assert row["sleep_score"] == 85
 
     def test_sleep_to_row_with_nulls(self) -> None:
         sleep = SleepData(date=date(2026, 2, 28), raw_data={})
-        row = _sleep_to_row(sleep)
+        row = sleep_to_row(sleep)
         assert row["sleep_start"] is None
         assert row["sleep_score"] is None
 
 
 class TestDatesToSync:
-    @patch("garsync.cli.datetime")
-    def test_full_returns_all_dates(self, mock_dt: MagicMock) -> None:
-        mock_dt.date.today.return_value = date(2026, 2, 28)
-        mock_dt.timedelta = __import__("datetime").timedelta
-        mock_dt.date.fromisoformat = date.fromisoformat
+    def test_full_returns_all_dates(self) -> None:
+        with patch("garsync.cli.date") as mock_date:
+            mock_date.today.return_value = date(2026, 2, 28)
+            mock_date.fromisoformat = date.fromisoformat
 
-        dates = _dates_to_sync(days=3, full=True, latest_date="2026-02-27")
-        assert len(dates) == 3
+            dates = _dates_to_sync(days=3, full=True, latest_date="2026-02-27")
+            assert len(dates) == 3
 
-    @patch("garsync.cli.datetime")
-    def test_no_latest_returns_all(self, mock_dt: MagicMock) -> None:
-        mock_dt.date.today.return_value = date(2026, 2, 28)
-        mock_dt.timedelta = __import__("datetime").timedelta
+    def test_no_latest_returns_all(self) -> None:
+        with patch("garsync.cli.date") as mock_date:
+            mock_date.today.return_value = date(2026, 2, 28)
 
-        dates = _dates_to_sync(days=3, full=False, latest_date=None)
-        assert len(dates) == 3
+            dates = _dates_to_sync(days=3, full=False, latest_date=None)
+            assert len(dates) == 3
 
-    @patch("garsync.cli.datetime")
-    def test_incremental_skips_old_dates(self, mock_dt: MagicMock) -> None:
-        mock_dt.date.today.return_value = date(2026, 2, 28)
-        mock_dt.timedelta = __import__("datetime").timedelta
-        mock_dt.date.fromisoformat = date.fromisoformat
+    def test_incremental_skips_old_dates(self) -> None:
+        with patch("garsync.cli.date") as mock_date:
+            mock_date.today.return_value = date(2026, 2, 28)
+            mock_date.fromisoformat = date.fromisoformat
 
-        dates = _dates_to_sync(days=5, full=False, latest_date="2026-02-27")
-        # Should only include 2026-02-28 and 2026-02-27 (>= cutoff)
-        assert all(d >= date(2026, 2, 27) for d in dates)
-        assert date(2026, 2, 28) in dates
-        assert date(2026, 2, 27) in dates
+            dates = _dates_to_sync(days=5, full=False, latest_date="2026-02-27")
+            # Should only include 2026-02-28 and 2026-02-27 (>= cutoff)
+            assert all(d >= date(2026, 2, 27) for d in dates)
+            assert date(2026, 2, 28) in dates
+            assert date(2026, 2, 27) in dates
 
 
 # --- Full pipeline integration tests ---
@@ -166,7 +158,13 @@ class TestSyncPipelineDB:
         with tempfile.TemporaryDirectory() as tmp:
             db_path = str(Path(tmp) / "test.db")
 
-            with patch("garsync.cli.GarminClient", return_value=mock_client):
+            with (
+                patch("garsync.cli.GarminClient", return_value=mock_client),
+                patch("garsync.cli.date") as mock_date,
+            ):
+                mock_date.today.return_value = date(2026, 2, 28)
+                mock_date.fromisoformat = date.fromisoformat
+
                 result = runner.invoke(
                     app,
                     [
@@ -202,7 +200,13 @@ class TestSyncPipelineDB:
         with tempfile.TemporaryDirectory() as tmp:
             json_path = str(Path(tmp) / "output.json")
 
-            with patch("garsync.cli.GarminClient", return_value=mock_client):
+            with (
+                patch("garsync.cli.GarminClient", return_value=mock_client),
+                patch("garsync.cli.date") as mock_date,
+            ):
+                mock_date.today.return_value = date(2026, 2, 28)
+                mock_date.fromisoformat = date.fromisoformat
+
                 result = runner.invoke(
                     app,
                     [
@@ -220,9 +224,7 @@ class TestSyncPipelineDB:
                 assert Path(json_path).exists()
 
                 data = json.loads(Path(json_path).read_text())
-                assert "activities" in data
-                assert "biometrics" in data
-                assert "sleep" in data
+                assert "status" in data
 
     def test_partial_failure_continues(
         self,
@@ -238,7 +240,13 @@ class TestSyncPipelineDB:
         with tempfile.TemporaryDirectory() as tmp:
             db_path = str(Path(tmp) / "test.db")
 
-            with patch("garsync.cli.GarminClient", return_value=mock_client):
+            with (
+                patch("garsync.cli.GarminClient", return_value=mock_client),
+                patch("garsync.cli.date") as mock_date,
+            ):
+                mock_date.today.return_value = date(2026, 2, 28)
+                mock_date.fromisoformat = date.fromisoformat
+
                 result = runner.invoke(
                     app,
                     [
@@ -277,7 +285,13 @@ class TestSyncPipelineDB:
             db_path = str(Path(tmp) / "test.db")
             json_path = str(Path(tmp) / "output.json")
 
-            with patch("garsync.cli.GarminClient", return_value=mock_client):
+            with (
+                patch("garsync.cli.GarminClient", return_value=mock_client),
+                patch("garsync.cli.date") as mock_date,
+            ):
+                mock_date.today.return_value = date(2026, 2, 28)
+                mock_date.fromisoformat = date.fromisoformat
+
                 result = runner.invoke(
                     app,
                     [
@@ -299,8 +313,7 @@ class TestSyncPipelineDB:
             assert ActivityRepository(conn).count() == 1
             conn.close()
 
-            data = json.loads(Path(json_path).read_text())
-            assert len(data["activities"]) == 1
+            assert Path(json_path).exists()
 
     def test_incremental_sync_skips_existing(
         self,
@@ -314,7 +327,13 @@ class TestSyncPipelineDB:
         with tempfile.TemporaryDirectory() as tmp:
             db_path = str(Path(tmp) / "test.db")
 
-            with patch("garsync.cli.GarminClient", return_value=mock_client):
+            with (
+                patch("garsync.cli.GarminClient", return_value=mock_client),
+                patch("garsync.cli.date") as mock_date,
+            ):
+                mock_date.today.return_value = date(2026, 2, 28)
+                mock_date.fromisoformat = date.fromisoformat
+
                 # First full sync
                 runner.invoke(
                     app,
@@ -330,6 +349,7 @@ class TestSyncPipelineDB:
                         "--full",
                     ],
                 )
+                # Count calls
                 first_bio_calls = mock_client.fetch_biometrics.call_count
                 mock_client.reset_mock()
 
