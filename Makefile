@@ -1,5 +1,5 @@
 # =============================================================================
-# Makefile – Bootstrap, quality checks, and development shortcuts
+# Makefile – GarSync
 # =============================================================================
 
 SHELL := /bin/bash
@@ -14,81 +14,48 @@ export SOPS_AGE_KEY_FILE ?= /home/manu/.config/age/key.txt
 .DEFAULT_GOAL := help
 
 # -----------------------------------------------------------------------------
-# Help
+# Help (public targets only)
 # -----------------------------------------------------------------------------
 .PHONY: help
 help:
 	@echo "=== GarSync ==="
 	@echo ""
-	@echo "Bootstrap:"
-	@echo "  make setup              Install all dependencies (Python + Frontend)"
-	@echo ""
-	@echo "Quality:"
-	@echo "  make check              Run ALL checks (backend + frontend)"
-	@echo "  make smoke              E2E smoke test — start API, hit all endpoints"
-	@echo "  make lint               Ruff linting (check only)"
-	@echo "  make format             Ruff formatting + import sorting (auto-fix)"
-	@echo "  make type               Mypy strict type checking"
-	@echo "  make test               Run pytest suite"
-	@echo "  make test-cov           Run pytest with coverage report"
-	@echo "  make frontend-check     Astro type check + production build"
-	@echo ""
-	@echo "Development:"
-	@echo "  make dev                Start FastAPI dev server (uvicorn, auto-reload)"
-	@echo "  make frontend-dev       Start Astro dev server (port 4321)"
-	@echo "  make frontend-build     Build Astro static site to frontend/dist/"
-	@echo "  make sync DAYS=7        Run Garmin sync to SQLite (requires secrets)"
-	@echo "  make secrets-edit       Edit SOPS-encrypted secrets"
-	@echo ""
-	@echo "Docker:"
-	@echo "  make build              Build Docker image"
-	@echo "  make run DAYS=7         Run sync via Docker (requires secrets)"
-	@echo "  make shell              Open shell in Docker container"
-	@echo "  make clean              Stop containers and remove data"
+	@echo "  make setup          Install all dependencies (Python + Frontend)"
+	@echo "  make check          Run ALL quality checks (lint, type, test, astro)"
+	@echo "  make smoke          E2E smoke test — API + endpoints + frontend build"
+	@echo "  make dev            Build frontend, start app on :8000 (single terminal)"
+	@echo "  make sync DAYS=7    Garmin data sync (requires SOPS secrets)"
+	@echo "  make format         Auto-fix code style (ruff)"
+	@echo "  make docker         Build and run Docker image on :8000"
+	@echo "  make clean          Stop containers, remove temp files"
 	@echo ""
 
 # -----------------------------------------------------------------------------
 # Bootstrap
 # -----------------------------------------------------------------------------
-.PHONY: setup setup-python setup-poetry setup-dependencies setup-sops setup-data setup-frontend
-setup: setup-python setup-poetry setup-dependencies setup-sops setup-data setup-frontend
-	@echo "✓ Setup complete"
-
-setup-python:
+.PHONY: setup
+setup:
 	@if ! command -v python3 >/dev/null 2>&1; then \
-		echo "Error: Python 3 is required"; \
-		exit 1; \
+		echo "Error: Python 3 is required"; exit 1; \
 	fi
-
-setup-poetry:
 	@if ! command -v poetry >/dev/null 2>&1; then \
 		echo "Installing Poetry..."; \
 		python3 -m pip install --upgrade poetry >/dev/null 2>&1; \
 	fi
 	@$(POETRY) config virtualenvs.create true
 	@$(POETRY) config virtualenvs.in-project true
-
-setup-dependencies:
 	@$(POETRY) install --quiet
-
-setup-sops:
 	@if ! command -v sops >/dev/null 2>&1; then \
 		echo "Warning: sops not found — secrets management unavailable"; \
 	fi
-
-setup-data:
 	@mkdir -p data
-	@if [ ! -f secrets.env.enc ]; then \
-		echo "No secrets found. Use 'make secrets-edit' after creating secrets.env.enc"; \
-	fi
-
-setup-frontend:
 	@cd frontend && npm install --silent
+	@echo "✓ Setup complete"
 
 # -----------------------------------------------------------------------------
 # Quality
 # -----------------------------------------------------------------------------
-.PHONY: check lint format type test test-cov frontend-check
+.PHONY: check lint format type test frontend-build
 
 check: lint type test frontend-check
 	@echo "✓ All checks passed"
@@ -111,10 +78,6 @@ type:
 test:
 	@printf "  test ........... "
 	@$(POETRY) run pytest --no-header --tb=short -W ignore::DeprecationWarning 2>&1 | tail -1
-
-
-test-cov:
-	@$(POETRY) run pytest --cov=garsync --cov-report=term-missing -v
 
 frontend-check:
 	@printf "  astro-check .... "
@@ -185,45 +148,54 @@ smoke:
 	@echo "✓ Smoke test passed"
 
 # -----------------------------------------------------------------------------
-# Development
+# Development & Infrastructure
 # -----------------------------------------------------------------------------
-.PHONY: dev frontend-dev frontend-build sync secrets-edit
-
-dev:
-	@GARSYNC_DB_PATH=data/garsync.db $(POETRY) run uvicorn garsync.api.main:app --reload --host 0.0.0.0 --port 8000
-
-frontend-dev:
-	@cd frontend && npm run dev
-
-frontend-build:
-	@cd frontend && npm run build
-
-sync: setup-data
-	@sops -d --input-type dotenv --output-type dotenv secrets.env.enc > .env.tmp
-	@set -a && . .env.tmp && set +a && \
-		$(POETRY) run garsync --days $(DAYS) --activities-limit 100 --db data/garsync.db --verbose || true
-	@rm -f .env.tmp
-
-secrets-edit:
-	@sops --input-type dotenv --output-type dotenv secrets.env.enc || true
-
-# -----------------------------------------------------------------------------
-# Docker
-# -----------------------------------------------------------------------------
-.PHONY: build run shell clean
+.PHONY: build run stop logs dev dev-api dev-ui sync
 
 build:
 	@docker compose build
+	@echo "✓ Docker build complete"
 
-run: setup-data
-	@sops -d --input-type dotenv --output-type dotenv secrets.env.enc > .env.tmp
-	@docker compose run --rm --env-from-file .env.tmp garsync \
-		--days $(DAYS) --activities-limit 100 --db /app/data/garsync.db --verbose || true
+run:
+	@docker compose up -d
+	@echo "✓ GarSync running on http://localhost:8000"
+
+stop:
+	@docker compose down
+	@echo "✓ Containers stopped"
+
+logs:
+	@docker compose logs -f
+
+dev:
+	@echo "=== Starting Full Dev Mode ==="
+	@echo "Backend: http://localhost:8000"
+	@echo "Frontend: http://localhost:4321"
+	@trap 'kill 0' EXIT; \
+	(GARSYNC_DB_PATH=data/garsync.db $(POETRY) run uvicorn garsync.api.main:app --reload --host 0.0.0.0 --port 8000) & \
+	(cd frontend && npm run dev)
+
+dev-api:
+	@GARSYNC_DB_PATH=data/garsync.db $(POETRY) run uvicorn garsync.api.main:app \
+		--reload --host 0.0.0.0 --port 8000
+
+dev-ui:
+	@cd frontend && npm run dev
+
+sync:
+	@mkdir -p data
+	@sops -d --input-type dotenv --output-type dotenv secrets.env.enc > .env.tmp 2>/dev/null || \
+		(echo "Error: Failed to decrypt secrets. Check SOPS_AGE_KEY_FILE." && exit 1)
+	@set -a && . .env.tmp && set +a && \
+		$(POETRY) run garsync --days $(DAYS) --activities-limit 100 --db data/garsync.db --verbose || true
 	@rm -f .env.tmp
+# -----------------------------------------------------------------------------
+# Maintenance
+# -----------------------------------------------------------------------------
+.PHONY: clean
 
-shell: setup-data
-	@docker compose run --rm --entrypoint bash garsync
+clean: stop
+	@rm -rf frontend/dist/ .pytest_cache/ .mypy_cache/ .ruff_cache/
+	@rm -f .env.tmp .smoke.pid
+	@echo "✓ Workspace cleaned"
 
-clean:
-	@docker compose down -v
-	@rm -f data/*.json .env.tmp

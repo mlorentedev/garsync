@@ -21,8 +21,14 @@
         </tr>
       </thead>
       <tbody id="activities-body" class="divide-y divide-slate-700/50">
-        <tr>
-          <td colspan="6" class="p-8 text-center text-slate-500">Loading activities...</td>
+        <!-- Skeleton rows by default -->
+        <tr class="animate-pulse">
+          <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-24"></div></td>
+          <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-32"></div></td>
+          <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-16 ml-auto"></div></td>
+          <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-16 ml-auto"></div></td>
+          <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-12 ml-auto"></div></td>
+          <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-12 ml-auto"></div></td>
         </tr>
       </tbody>
     </table>
@@ -146,20 +152,33 @@
     return tr;
   }
 
-  function buildEmptyRow(): HTMLTableRowElement {
-    const tr = document.createElement("tr");
-    const td = document.createElement("td");
-    td.colSpan = 6;
-    td.className = "p-8 text-center text-slate-500";
-    td.textContent = "No activities in selected date range";
-    tr.appendChild(td);
-    return tr;
+  function showSkeletons(tbody: HTMLElement) {
+    tbody.innerHTML = `
+      <tr class="animate-pulse">
+        <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-24"></div></td>
+        <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-32"></div></td>
+        <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-16 ml-auto"></div></td>
+        <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-16 ml-auto"></div></td>
+        <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-12 ml-auto"></div></td>
+        <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-12 ml-auto"></div></td>
+      </tr>
+      <tr class="animate-pulse">
+        <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-24"></div></td>
+        <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-32"></div></td>
+        <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-16 ml-auto"></div></td>
+        <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-16 ml-auto"></div></td>
+        <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-12 ml-auto"></div></td>
+        <td class="p-4"><div class="h-4 bg-slate-700/50 rounded w-12 ml-auto"></div></td>
+      </tr>
+    `;
   }
 
   async function loadActivities(page: number, append: boolean = false) {
     const tbody = document.getElementById("activities-body");
     const loadMoreRow = document.getElementById("load-more-row");
     if (!tbody || !loadMoreRow) return;
+
+    if (!append) showSkeletons(tbody);
 
     try {
       const range = $dateRange.get();
@@ -171,7 +190,7 @@
       });
 
       if (data.items.length === 0 && !append) {
-        tbody.replaceChildren(buildEmptyRow());
+        tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500">No activities in selected range</td></tr>';
         loadMoreRow.classList.add("hidden");
         return;
       }
@@ -190,19 +209,9 @@
       }
     } catch (err) {
       console.error("[ActivityTable] Failed to load:", err);
-      const tr = document.createElement("tr");
-      const td = document.createElement("td");
-      td.colSpan = 6;
       if (!append) {
-        td.className = "p-8 text-center text-red-400";
-        td.textContent = "Failed to load activities";
-        tbody.replaceChildren(tr);
-      } else {
-        td.className = "p-4 text-center text-red-400 text-sm";
-        td.textContent = "Failed to load more activities";
-        tbody.appendChild(tr);
+        tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-red-400">Failed to load activities</td></tr>';
       }
-      tr.appendChild(td);
     }
   }
 

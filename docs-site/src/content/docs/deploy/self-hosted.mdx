@@ -1,0 +1,57 @@
+---
+title: Self-Hosted Guide
+description: Deploy GarSync on your own hardware (Raspberry Pi, NAS, Home Server).
+---
+
+GarSync is optimized for low-power hardware, running comfortably with less than 200MB of RAM.
+
+## Recommended Structure
+
+Create a dedicated folder on your server:
+```
+garsync/
+├── docker-compose.yml
+├── secrets.env.enc (or .env)
+├── key.txt (if using SOPS)
+└── data/ (sqlite database)
+```
+
+## Docker Compose Configuration
+
+Use this `docker-compose.yml` for production deployment:
+
+```yaml
+services:
+  garsync:
+    image: garsync:latest # Build from source using 'make build'
+    container_name: garsync
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - GARSYNC_DB_PATH=/app/data/garsync.db
+      - TZ=UTC # Set your timezone
+```
+
+## Automated Sync (Cron)
+
+Schedule the sync pipeline to keep your dashboard updated:
+
+```bash
+# Sync every day at 4:00 AM
+0 4 * * * cd /path/to/garsync && /usr/bin/docker compose run --rm --entrypoint "garsync --days 7 --db /app/data/garsync.db" garsync
+```
+
+## Performance on Raspberry Pi
+
+GarSync uses **SQLite WAL Mode** by default, allowing the dashboard to remain responsive even while a sync job is updating records.
+
+### Resource Usage (Estimated)
+
+| Service | CPU (Avg) | RAM (Peak) |
+|---|---|---|
+| **Pipeline** | 15% (during sync) | 120MB |
+| **Backend** | 1% (idle) | 80MB |
+| **Frontend** | 0% (static) | < 10MB |

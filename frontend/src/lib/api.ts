@@ -1,4 +1,5 @@
 const API = import.meta.env.PUBLIC_API_URL ?? "http://localhost:8000";
+const API_KEY = import.meta.env.PUBLIC_API_KEY ?? "dev_key";
 
 // --- Types matching FastAPI Pydantic schemas ---
 
@@ -113,7 +114,11 @@ async function get<T>(path: string, params?: Record<string, string>): Promise<T>
       if (v !== undefined && v !== null) url.searchParams.set(k, v);
     }
   }
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), {
+    headers: {
+      "X-API-KEY": API_KEY,
+    },
+  });
   if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
   return res.json() as Promise<T>;
 }
@@ -141,8 +146,17 @@ export const api = {
       end_date: endDate,
     }),
 
-  statsSummary: (period: string = "week") =>
-    get<SummaryStats>("/api/stats/summary", { period }),
+  statsSummary: (opts?: {
+    period?: string;
+    start_date?: string;
+    end_date?: string;
+  }) => {
+    const params: Record<string, string> = {};
+    if (opts?.period) params.period = opts.period;
+    if (opts?.start_date) params.start_date = opts.start_date;
+    if (opts?.end_date) params.end_date = opts.end_date;
+    return get<SummaryStats>("/api/stats/summary", params);
+  },
 
   sleep: (startDate: string, endDate: string) =>
     get<SleepResponse>("/api/sleep", {

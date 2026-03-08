@@ -1,0 +1,43 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened? What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Minimal steps to reproduce the issue (sync command, API call, etc.)
+      placeholder: |
+        1. Run `make sync DAYS=7`
+        2. Observe Garmin API error for sleep data
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, GarSync version
+      placeholder: |
+        - OS: Ubuntu 24.04
+        - Python: 3.12.3
+        - Version: 0.1.0
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Error Output
+      description: Paste relevant logs from `make logs` or CLI output
+      render: shell
+    validations:
+      required: false

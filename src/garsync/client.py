@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 from typing import List, Optional
 
 from garminconnect import Garmin
@@ -11,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 class GarminClient:
+    """Wrapper for Garmin Connect API with token caching support."""
+
     def __init__(self, email: str, password: str, token_store: Optional[str] = None):
         self.email = email
         self.password = password
@@ -19,26 +22,46 @@ class GarminClient:
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def login(self) -> None:
+        """Authenticate with Garmin Connect using tokens or credentials."""
         try:
-            # We skip token store login for brevity, but you could implement garth token caching
-            logger.info("Authenticating with Garmin Connect...")
-            self.client.login()
-            logger.info("Authentication successful.")
+            if self.token_store and os.path.exists(self.token_store):
+                logger.info(f"Attempting to login using tokens from {self.token_store}...")
+                self.client.login(self.token_store)
+                logger.info("Token-based authentication successful.")
+            else:
+                logger.info("Authenticating with Garmin Connect credentials...")
+                self.client.login()
+                logger.info("Authentication successful.")
+                if self.token_store:
+                    # Save tokens for next time
+                    os.makedirs(os.path.dirname(self.token_store), exist_ok=True)
+                    self.client.garth.save(self.token_store)
+                    logger.info(f"Session tokens saved to {self.token_store}")
         except Exception as e:
             logger.error(f"Failed to authenticate: {e}")
+            # If token login fails, try one more time with credentials (if they exist)
+            if self.token_store and os.path.exists(self.token_store):
+                logger.warning("Token login failed, falling back to credentials...")
+                try:
+                    self.client.login()
+                    if self.token_store:
+                        self.client.garth.save(self.token_store)
+                    return
+                except Exception as cred_err:
+                    logger.error(f"Fallback credential login also failed: {cred_err}")
             raise
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-    def fetch_activities(self, start: int, limit: int = 100) -> List[NormalizedActivity]:
+    def fetch_activities(self, start: int = 0, limit: int = 100) -> List[NormalizedActivity]:
         logger.info(f"Fetching activities (start={start}, limit={limit})...")
         raw_activities = self.client.get_activities(start, limit)
         activities = []
         for raw in raw_activities:
             try:
                 # Convert timestamp from Garmin format
-                start_time = datetime.datetime.fromisoformat(
-                    raw.get("startTimeLocal", raw.get("startTimeGMT"))
-                )
+                start_time_str = raw.get("startTimeLocal", raw.get("startTimeGMT"))
+                start_time = datetime.datetime.fromisoformat(start_time_str) if start_time_str else None
+                
                 activities.append(
                     NormalizedActivity(
                         activity_id=raw.get("activityId"),
@@ -61,12 +84,11 @@ class GarminClient:
     def fetch_biometrics(self, date: datetime.date) -> DailyBiometrics:
         logger.info(f"Fetching biometrics for {date}...")
         try:
-            hr_data = self.client.get_heart_rates(date.isoformat())
-            bb_data = self.client.get_body_battery(date.isoformat())
-            stress_data = self.client.get_all_day_stress(date.isoformat())
-
-            # Garmin HRV status requires different endpoint.
-            hrv_data = self.client.get_hrv_data(date.isoformat())
+            date_str = date.isoformat()
+            hr_data = self.client.get_heart_rates(date_str)
+            bb_data = self.client.get_body_battery(date_str)
+            stress_data = self.client.get_all_day_stress(date_str)
+            hrv_data = self.client.get_hrv_data(date_str)
 
             # Helpers to safely extract data whether it's a list or dict
             def get_dict(data):
@@ -120,11 +142,11 @@ class GarminClient:
 
             sleep_start = None
             if start_timestamp := daily_sleep.get("sleepStartTimestampGMT"):
-                sleep_start = datetime.datetime.utcfromtimestamp(start_timestamp / 1000.0)
+                sleep_start = datetime.datetime.fromtimestamp(start_timestamp / 1000.0, datetime.UTC)
 
             sleep_end = None
             if end_timestamp := daily_sleep.get("sleepEndTimestampGMT"):
-                sleep_end = datetime.datetime.utcfromtimestamp(end_timestamp / 1000.0)
+                sleep_end = datetime.datetime.fromtimestamp(end_timestamp / 1000.0, datetime.UTC)
 
             return SleepData(
                 date=date,

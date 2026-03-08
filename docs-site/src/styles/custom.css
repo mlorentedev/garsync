@@ -1,0 +1,13 @@
+/* Light mode */
+:root {
+  --sl-color-accent-low: #e0f2fe;    /* backgrounds, highlights (cyan 100) */
+  --sl-color-accent: #0284c7;         /* links, buttons (sky 600) */
+  --sl-color-accent-high: #0c4a6e;    /* text on accent backgrounds (sky 950) */
+}
+
+/* Dark mode: invert the scale */
+:root[data-theme='dark'] {
+  --sl-color-accent-low: #082f49;     /* sky 950 */
+  --sl-color-accent: #38bdf8;         /* sky 400 */
+  --sl-color-accent-high: #f0f9ff;    /* sky 50 */
+}

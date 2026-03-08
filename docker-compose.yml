@@ -1,18 +1,18 @@
 services:
   garsync:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: garsync:latest
     container_name: garsync
-    volumes:
-      - ./data:/app/data
-
-  ui:
-    image: python:3.12-alpine
-    container_name: garsync-ui
-    volumes:
-      - ./data:/app/data
-      - ./html:/app/html
+    restart: unless-stopped
     ports:
-      - "8501:8501"
-    working_dir: /app
-    command: ["python", "-m", "http.server", "8501", "--directory", "html"]
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - GARSYNC_DB_PATH=/app/data/garsync.db
+      - TZ=UTC
+    labels:
+      com.garsync.description: "Garmin Sync Pipeline and Dashboard"
+      com.garsync.version: "0.1.0"

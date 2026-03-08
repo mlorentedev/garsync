@@ -32,9 +32,10 @@
     value: string,
     valueClass: string,
     subtitle?: string,
+    trend?: number, // Percentage change
   ): HTMLDivElement {
     const card = document.createElement("div");
-    card.className = `card p-5 border-t-4 ${borderColor} flex flex-col justify-center`;
+    card.className = `card p-5 border-t-4 ${borderColor} flex flex-col justify-center relative overflow-hidden`;
 
     const labelEl = document.createElement("div");
     labelEl.className = "text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2";
@@ -47,107 +48,114 @@
     card.appendChild(labelEl);
     card.appendChild(valueEl);
 
-    if (subtitle) {
-      const subEl = document.createElement("div");
-      subEl.className = "text-xs text-slate-500 mt-1";
-      subEl.textContent = subtitle;
-      card.appendChild(subEl);
+    if (subtitle || trend !== undefined) {
+      const footerEl = document.createElement("div");
+      footerEl.className = "flex items-center gap-2 mt-1";
+
+      if (subtitle) {
+        const subEl = document.createElement("div");
+        subEl.className = "text-xs text-slate-500";
+        subEl.textContent = subtitle;
+        footerEl.appendChild(subEl);
+      }
+
+      if (trend !== undefined && !isNaN(trend) && isFinite(trend) && trend !== 0) {
+        const trendEl = document.createElement("div");
+        const isPositive = trend > 0;
+        // For some metrics (like RHR or Stress), positive is bad (red)
+        const isGood = (label.includes("Resting HR") || label.includes("Stress")) ? !isPositive : isPositive;
+        
+        trendEl.className = `text-[10px] font-bold px-1.5 py-0.5 rounded ${
+          isGood ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"
+        }`;
+        trendEl.textContent = `${isPositive ? "↑" : "↓"} ${Math.abs(Math.round(trend))}%`;
+        footerEl.appendChild(trendEl);
+      }
+
+      card.appendChild(footerEl);
     }
 
     return card;
+  }
+
+  function showSkeletons() {
+    const container = document.getElementById("kpi-cards");
+    if (!container) return;
+    container.innerHTML = `
+      <div class="card p-5 animate-pulse h-28 bg-slate-800/50"></div>
+      <div class="card p-5 animate-pulse h-28 bg-slate-800/50"></div>
+      <div class="card p-5 animate-pulse h-28 bg-slate-800/50"></div>
+      <div class="card p-5 animate-pulse h-28 bg-slate-800/50"></div>
+    `;
   }
 
   async function renderKpis() {
     const container = document.getElementById("kpi-cards");
     if (!container) return;
 
+    showSkeletons();
+
     try {
       const range = $dateRange.get();
-      const [activities, bio] = await Promise.all([
-        api.activities({ start_date: range.start, end_date: range.end, limit: 1 }),
-        api.biometrics(range.start, range.end),
+      const startDate = new Date(range.start);
+      const endDate = new Date(range.end);
+      const diffDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24)) + 1;
+
+      const prevEndDate = new Date(startDate);
+      prevEndDate.setDate(prevEndDate.getDate() - 1);
+      const prevStartDate = new Date(prevEndDate);
+      prevStartDate.setDate(prevStartDate.getDate() - diffDays + 1);
+
+      const [current, previous] = await Promise.all([
+        api.statsSummary({ start_date: range.start, end_date: range.end }),
+        api.statsSummary({ 
+          start_date: prevStartDate.toISOString().split("T")[0], 
+          end_date: prevEndDate.toISOString().split("T")[0] 
+        }),
       ]);
 
-      let latestRHR: number | null = null;
-      for (let i = bio.metrics.length - 1; i >= 0; i--) {
-        if (bio.metrics[i].resting_heart_rate !== null) {
-          latestRHR = bio.metrics[i].resting_heart_rate;
-          break;
-        }
-      }
-
-      const totalActs = activities.total;
-      const rhrDisplay = latestRHR !== null ? `${latestRHR}` : "--";
+      const calcTrend = (curr: number | null, prev: number | null) => {
+        if (!curr || !prev) return undefined;
+        return ((curr - prev) / prev) * 100;
+      };
 
       container.replaceChildren(
         createKpiCard(
           "border-t-orange-500",
           "Activities",
-          String(totalActs),
+          String(current.total_activities),
           "text-white",
-          "in selected range",
+          formatDuration(current.total_duration_seconds),
+          calcTrend(current.total_activities, previous.total_activities)
         ),
         createKpiCard(
           "border-t-blue-500",
           "Distance",
-          "--",
+          formatDistance(current.total_distance_meters),
           "text-white",
+          "km",
+          calcTrend(current.total_distance_meters, previous.total_distance_meters)
         ),
         createKpiCard(
           "border-t-amber-500",
           "Calories",
-          "--",
+          `${Math.round(current.total_calories)}`,
           "text-white",
+          "kcal",
+          calcTrend(current.total_calories, previous.total_calories)
         ),
-        createKpiCard("border-t-rose-500", "Resting HR", rhrDisplay, "text-white", rhrDisplay !== "--" ? "bpm" : ""),
+        createKpiCard(
+          "border-t-rose-500", 
+          "Resting HR", 
+          current.avg_resting_heart_rate ? `${Math.round(current.avg_resting_heart_rate)}` : "--", 
+          "text-white", 
+          "bpm avg",
+          calcTrend(current.avg_resting_heart_rate, previous.avg_resting_heart_rate)
+        ),
       );
-
-      // Fetch full page to compute distance + calories totals
-      if (totalActs > 0) {
-        const full = await api.activities({
-          start_date: range.start,
-          end_date: range.end,
-          limit: totalActs,
-        });
-        let totalDist = 0;
-        let totalCal = 0;
-        let totalDur = 0;
-        for (const a of full.items) {
-          if (a.distance_meters !== null) totalDist += a.distance_meters;
-          if (a.calories !== null) totalCal += a.calories;
-          if (a.duration_seconds !== null) totalDur += a.duration_seconds;
-        }
-        container.replaceChildren(
-          createKpiCard(
-            "border-t-orange-500",
-            "Activities",
-            String(totalActs),
-            "text-white",
-            formatDuration(totalDur),
-          ),
-          createKpiCard(
-            "border-t-blue-500",
-            "Distance",
-            formatDistance(totalDist),
-            "text-white",
-          ),
-          createKpiCard(
-            "border-t-amber-500",
-            "Calories",
-            `${Math.round(totalCal)}`,
-            "text-white",
-            "kcal",
-          ),
-          createKpiCard("border-t-rose-500", "Resting HR", rhrDisplay, "text-white", rhrDisplay !== "--" ? "bpm" : ""),
-        );
-      }
     } catch (error) {
       console.error("[KpiCards] Failed to load:", error);
-      container.replaceChildren();
-      const errDiv = document.createElement("div");
-      errDiv.className = "col-span-4 text-center text-slate-500 py-4";
-      errDiv.textContent = "Failed to load KPIs";
-      container.appendChild(errDiv);
+      container.innerHTML = `<div class="col-span-4 text-center text-slate-500 py-4">Failed to load KPIs</div>`;
     }
   }
 

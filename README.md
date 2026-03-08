@@ -1,86 +1,61 @@
 # GarSync
 
-GarSync is a microservice and CLI tool designed to bridge the gap between Garmin Connect's proprietary cloud and a personal developer platform. It extracts activities, daily biometrics (HRV, Resting HR, Body Battery, Stress), and sleep data, outputting it as normalized, structured JSON.
+[![CI](https://github.com/mlorentedev/garsync/actions/workflows/ci.yml/badge.svg)](https://github.com/mlorentedev/garsync/actions)
+[![Docs](https://img.shields.io/badge/docs-live-brightgreen.svg)](https://mlorentedev.github.io/garsync/)
+[![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/release/python-3120/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-## Features
+Personal fitness data pipeline that syncs Garmin Connect data to a local SQLite database and visualizes it through a modern Astro dashboard.
 
-- **Automated Extraction:** Pulls activities and biometric data from Garmin Connect.
-- **Resilient:** Built-in retry logic to handle network timeouts and API rate limiting.
-- **Containerized:** Ready for deployment via Docker Compose.
-- **Structured Data:** Outputs normalized JSON suitable for time-series databases or personal data lakes.
+> **Explore the full documentation at: [mlorentedev.github.io/garsync](https://mlorentedev.github.io/garsync/)**
 
-## Getting Started
+## The Problem
 
-### Local Setup (Development)
+Garmin Connect provides great data, but it's locked in a proprietary cloud.
+- **Data Silos:** Hard to export full history for custom analysis.
+- **Limited Visualization:** You are stuck with the official app's charts.
+- **No Local Ownership:** If you lose access or the service is down, your training history is gone.
 
-1. Install dependencies:
-   ```bash
-   poetry install
-   ```
+## Value Proposition
 
-2. Run the CLI:
-   ```bash
-   poetry run garsync --help
-   ```
+| Feature | Garmin Connect App | GarSync |
+|---|---|---|
+| **Data Ownership** | Proprietary Cloud | Local SQLite (Full Control) |
+| **Customization** | Fixed Dashboards | Extensible Astro + Chart.js |
+| **Access** | Web/Mobile Only | REST API + SQL + CLI |
+| **Automation** | Manual Export | Scheduled Incremental Sync |
 
-### Docker Compose & Makefile
+## Quick Start
 
-The project includes a `docker-compose.yml` and a `Makefile` to simplify operations without needing a complex orchestrator. The extracted data is stored in a local `./data` volume.
+### 1. Prerequisites
+- Python 3.12+ and [Poetry](https://python-poetry.org/)
+- Node.js 22+ (for the dashboard)
+- [SOPS](https://github.com/getsops/sops) + [Age](https://github.com/FiloSottile/age) (for secrets)
 
-**1. Setup Environment & Credentials**
-
-Create a local `data` directory and initialize your encrypted secrets file:
-
+### 2. Setup
 ```bash
 make setup
 ```
 
-This will automatically create a `secrets.env.enc` file if it doesn't exist. Now, edit the secrets (it will temporarily decrypt them in your default editor):
-
+### 3. Configure Secrets
+Edit your Garmin credentials using SOPS:
 ```bash
-make secrets-edit
+sops secrets.env.enc
 ```
 
-Fill in your Garmin Connect credentials:
-
-```ini
-GARMIN_EMAIL=your_email@example.com
-GARMIN_PASSWORD=your_password
-```
-
-Save and close your editor. SOPS will automatically re-encrypt the file. You do **not** need an unencrypted `.env` file sitting around anymore!
-
-**2. Build the Image**
-
+### 4. Sync & Launch
 ```bash
-make build
+make sync DAYS=30
+make dev
+```
+Visit `http://localhost:4321` (Dev UI).
+
+## Architecture
+
+```
+Garmin Connect Cloud → GarSync CLI → SQLite DB → FastAPI → Astro Dashboard
 ```
 
-**3. Run the Sync Job**
+## License
 
-Executes the synchronization process and outputs the structured JSON to `data/sync_result.json`:
-
-```bash
-make run
-```
-
-**4. View the Dashboard**
-
-You can spin up an interactive data visualization dashboard based on Streamlit that reads your latest sync file:
-
-```bash
-make ui
-```
-
-Then visit `http://localhost:8501` in your browser.
-
-**5. Additional Commands**
-
-- Drop into a shell inside the container for debugging: `make shell`
-- Clean up containers and local data output: `make clean`
-
-## Development
-
-- **Linting:** Run `poetry run ruff check .`
-- **Type Checking:** Run `poetry run mypy src`
-- **Testing:** Run `poetry run pytest`
+MIT — see [LICENSE](LICENSE).

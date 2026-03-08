@@ -1,0 +1,66 @@
+---
+title: Own Your Fitness Data with GarSync
+description: Personal fitness data pipeline from Garmin Connect to local SQLite with interactive Astro dashboard.
+template: splash
+hero:
+  tagline: Sync, Store, and Visualize your Garmin health metrics on your own terms.
+  image:
+    file: ../../public/favicon.svg
+  actions:
+    - text: Get Started
+      link: /garsync/introduction/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/mlorentedev/garsync
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<p align="center">
+  <img src="https://img.shields.io/github/actions/workflow/status/mlorentedev/garsync/ci.yml?branch=master&label=CI&style=flat-square" alt="CI Status" />
+  <img src="https://img.shields.io/github/license/mlorentedev/garsync?style=flat-square&color=green" alt="License" />
+  <img src="https://img.shields.io/badge/python-3.12+-blue.svg?style=flat-square" alt="Python Version" />
+</p>
+
+## Why GarSync?
+
+<CardGrid stagger>
+  <Card title="Data Ownership" icon="approve-check-circle">
+    Your metrics, your database. No proprietary cloud lock-in. Full access via SQL.
+  </Card>
+  <Card title="Incremental Sync" icon="rocket">
+    Efficient data extraction using your Garmin Connect credentials. Fast and resilient.
+  </Card>
+  <Card title="Interactive Dashboard" icon="random">
+    Visualize activities, heart rate trends, and intensity heatmaps with Astro and Chart.js.
+  </Card>
+  <Card title="Developer Ready" icon="setting">
+    Expose your data through a clean FastAPI REST API. Perfect for personal projects.
+  </Card>
+</CardGrid>
+
+## Compare the Value
+
+| Feature | Garmin Connect App | GarSync |
+|---|---|---|
+| **Data Ownership** | Proprietary Cloud | Local SQLite (Full Control) |
+| **Customization** | Fixed Dashboards | Extensible Astro + Chart.js |
+| **Access** | Web/Mobile Only | REST API + SQL + CLI |
+| **Automation** | Manual Export | Scheduled Incremental Sync |
+
+## Quick Setup
+
+```bash
+# Clone and setup
+git clone https://github.com/mlorentedev/garsync.git
+cd garsync && make setup
+
+# Sync your data
+make sync DAYS=30
+
+# Start development dashboard
+make dev
+```

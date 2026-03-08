@@ -1,0 +1,55 @@
+---
+title: Quick Setup
+description: Get your GarSync instance running in minutes.
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+<Steps>
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/mlorentedev/garsync.git
+   cd garsync
+   ```
+
+2. **Run setup**
+   Ensure you have Python 3.12+ and Node.js 22+ installed.
+   ```bash
+   make setup
+   ```
+
+3. **Configure Secrets**
+   GarSync uses [SOPS](https://github.com/getsops/sops) for secure credential management.
+   ```bash
+   # Opens your default editor
+   sops secrets.env.enc
+   ```
+   Add your Garmin credentials:
+   ```ini
+   GARMIN_EMAIL=user@example.com
+   GARMIN_PASSWORD=yourpassword
+   ```
+
+4. **First Sync**
+   Fetch your last 30 days of activity and biometrics.
+   ```bash
+   make sync DAYS=30
+   ```
+
+5. **Start the Dashboard**
+   Launch the development environment:
+   ```bash
+   make dev
+   ```
+   Visit `http://localhost:4321` to see your data!
+
+</Steps>
+
+## Deployment (Production)
+
+To run GarSync permanently on your server:
+```bash
+make build && make run
+```
+The application will be accessible at `http://localhost:8000`.

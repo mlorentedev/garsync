@@ -1,12 +1,15 @@
 ---
 ---
 
-<div class="card p-5">
+<div class="card p-5 relative overflow-hidden">
   <h2 class="text-lg font-semibold mb-4 text-slate-200 flex items-center gap-2">
     <span class="w-2 h-2 rounded-full bg-rose-400"></span>
     Resting Heart Rate Trend
   </h2>
   <div class="relative h-64 w-full">
+    <div id="trend-loading" class="absolute inset-0 bg-slate-800/40 animate-pulse rounded-lg z-10 hidden items-center justify-center backdrop-blur-[1px]">
+      <div class="text-slate-400 text-xs font-semibold tracking-wider uppercase">Updating Chart...</div>
+    </div>
     <canvas id="trend-chart"></canvas>
   </div>
 </div>
@@ -33,7 +36,13 @@
 
   async function renderChart() {
     const canvas = document.getElementById("trend-chart") as HTMLCanvasElement | null;
+    const loader = document.getElementById("trend-loading");
     if (!canvas) return;
+
+    if (loader) {
+      loader.classList.remove("hidden");
+      loader.classList.add("flex");
+    }
 
     try {
       const range = $dateRange.get();
@@ -91,13 +100,13 @@
       });
     } catch (err) {
       console.error("[TrendChart] Failed to render:", err);
-      const container = canvas?.parentElement;
-      if (container) {
-        container.replaceChildren();
-        const errDiv = document.createElement("div");
-        errDiv.className = "text-red-400 text-sm py-4 text-center";
-        errDiv.textContent = "Failed to load chart data";
-        container.appendChild(errDiv);
+      if (chart) chart.destroy();
+      const ctx = canvas.getContext("2d");
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    } finally {
+      if (loader) {
+        loader.classList.add("hidden");
+        loader.classList.remove("flex");
       }
     }
   }
