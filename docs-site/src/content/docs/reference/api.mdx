@@ -1,0 +1,17 @@
+---
+title: "API Reference"
+description: "REST API endpoints for GarSync."
+---
+
+GarSync provides a FastAPI-powered REST API to access your fitness data.
+
+### Endpoints
+
+- `GET /api/activities`: List paginated activities.
+- `GET /api/biometrics`: Fetch biometric data by date range.
+- `GET /api/sleep`: Fetch sleep data by date range.
+- `GET /api/stats/summary`: Get aggregated statistics.
+- `GET /api/stats/heatmap`: Activity heatmap data.
+- `GET /api/sync/status`: Latest synchronization status.
+
+All endpoints (except static files) require the `X-API-KEY` header.

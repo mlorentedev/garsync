@@ -1,0 +1,25 @@
+---
+title: "CLI Reference"
+description: "Command line interface for GarSync."
+---
+
+GarSync uses [Typer](https://typer.tiangolo.com/) for a rich CLI experience.
+
+### Commands
+
+#### `sync`
+
+Sync data from Garmin Connect to local SQLite.
+
+```bash
+garsync sync --email "user@example.com" --password "pass" --db "data/garsync.db" --days 7
+```
+
+**Options:**
+
+- `--email`: Garmin Connect email (env: `GARMIN_EMAIL`).
+- `--password`: Garmin Connect password (env: `GARMIN_PASSWORD`).
+- `--db`: Path to SQLite database.
+- `--days`: Number of days to sync (default: 7).
+- `--full`: Force full sync (ignore incremental logic).
+- `--activities-limit`: Max activities to fetch (default: 100).
