@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/mlorentedev/garsync/compare/v0.1.1...v0.1.2) (2026-03-08)
+
+
+### Bug Fixes
+
+* resolve Starlight build error by fixing image path and copying favicon ([08175af](https://github.com/mlorentedev/garsync/commit/08175afe6f7669f895bfcd05e12381da0343504a))
+
 ## [0.1.1](https://github.com/mlorentedev/garsync/compare/v0.1.0...v0.1.1) (2026-03-08)
 
 
