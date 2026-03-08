@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.1](https://github.com/mlorentedev/garsync/compare/v0.1.0...v0.1.1) (2026-03-08)
+
+
+### Bug Fixes
+
+* complete documentation files and content config for Starlight ([87a7acb](https://github.com/mlorentedev/garsync/commit/87a7acb62ea94c1c5da69eb06596cc4dfc54558f))
+* resolve CI linting, type errors, and missing lockfiles ([d020ef3](https://github.com/mlorentedev/garsync/commit/d020ef3e47a2750ace28ccda265564b8e492eea4))
+
 ## 0.1.0 (2026-03-08)
 
 
