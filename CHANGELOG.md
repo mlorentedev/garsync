@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/mlorentedev/garsync/compare/v0.1.2...v0.1.3) (2026-05-29)
+
+
+### Bug Fixes
+
+* **test:** make integration stats-summary assertion date-independent ([#5](https://github.com/mlorentedev/garsync/issues/5)) ([2d730b2](https://github.com/mlorentedev/garsync/commit/2d730b27119f67baef5d77d12a54aebe91480074))
+
 ## [0.1.2](https://github.com/mlorentedev/garsync/compare/v0.1.1...v0.1.2) (2026-03-08)
 
 
