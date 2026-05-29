@@ -26,14 +26,14 @@
 
 ## 2. Development Workflow
 
-1. **Research:** Check `10_projects/garsync/` in Hive Vault for tasks and lessons before acting.
+1. **Research:** Check the repo `docs/` (ADRs, runbooks, lessons) and `10_projects/garsync/` in the vault (strategic tasks/roadmap) before acting.
 2. **Execution:**
    - **TDD:** Write/update tests in `tests/` before modifying logic.
    - **Validation:** Run `make check` (must include backend lint/test + frontend build).
 3. **Knowledge Loop:**
-   - Capture non-trivial bugs/fixes in `90-lessons.md`.
-   - Document architectural changes in `30-architecture/adr-XXX.md`.
-   - Update `11-tasks.md` progress bar after each task.
+   - Capture non-trivial bugs/fixes in `docs/lessons.md` (repo).
+   - Document architectural changes in `docs/adr/adr-XXX.md` (repo).
+   - Update `11-tasks.md` progress bar in the vault (strategic) after each task.
 
 ## 3. Critical Constraints
 
@@ -46,4 +46,5 @@
 - **Backend:** `src/garsync/`
 - **Frontend:** `frontend/`
 - **Tests:** `tests/`
-- **Vault:** `10_projects/garsync/` (Strategic Context)
+- **Docs:** `docs/` (ADRs, runbooks, lessons — project-bound)
+- **Vault:** `10_projects/garsync/` (strategic context only: roadmap, tasks)
