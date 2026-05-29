@@ -59,3 +59,7 @@ Garmin Connect Cloud → GarSync CLI → SQLite DB → FastAPI → Astro Dashboa
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## Documentation
+
+Project-bound knowledge lives in [`docs/`](docs/) (docs-as-code): ADRs, runbooks, troubleshooting, and lessons.
