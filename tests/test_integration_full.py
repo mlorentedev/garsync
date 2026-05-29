@@ -112,8 +112,11 @@ async def test_full_pipeline_sync_to_api(mock_garmin_data) -> None:
             assert data["count"] == 1
             assert data["metrics"][0]["resting_heart_rate"] == 48
 
-            # Check stats summary
-            resp = await client.get("/api/stats/summary", headers=headers)
+            # Check stats summary (explicit range so the test is date-independent;
+            # the default "week" period is relative to today and excludes fixture data)
+            resp = await client.get(
+                "/api/stats/summary?start_date=2026-03-01&end_date=2026-03-31", headers=headers
+            )
             assert resp.status_code == 200
             data = resp.json()
             assert data["total_activities"] == 1
