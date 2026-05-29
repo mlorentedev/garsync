@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/mlorentedev/garsync/compare/v0.1.3...v0.1.4) (2026-05-29)
+
+
+### Documentation
+
+* migrate project-bound knowledge into docs/ (KPM-013) ([#4](https://github.com/mlorentedev/garsync/issues/4)) ([16845bb](https://github.com/mlorentedev/garsync/commit/16845bb31ff5692fa02bb02640d7ef9270189e4b))
+
 ## [0.1.3](https://github.com/mlorentedev/garsync/compare/v0.1.2...v0.1.3) (2026-05-29)
 
 
