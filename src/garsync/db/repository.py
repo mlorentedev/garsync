@@ -5,7 +5,7 @@ Connection is injected — the caller manages lifecycle and transactions.
 """
 
 import sqlite3
-from typing import Any, Optional
+from typing import Any
 
 
 class ActivityRepository:
@@ -73,12 +73,12 @@ class ActivityRepository:
             )
         self._conn.commit()
 
-    def get_by_id(self, activity_id: int) -> Optional[sqlite3.Row]:
+    def get_by_id(self, activity_id: int) -> sqlite3.Row | None:
         """Get a single activity by ID, or None."""
         cursor = self._conn.execute(
             "SELECT * FROM activities WHERE activity_id = ?", (activity_id,)
         )
-        row: Optional[sqlite3.Row] = cursor.fetchone()
+        row: sqlite3.Row | None = cursor.fetchone()
         return row
 
     def get_all(self, limit: int = 1000) -> list[sqlite3.Row]:
@@ -99,9 +99,9 @@ class ActivityRepository:
         self,
         page: int = 1,
         limit: int = 20,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        activity_type: Optional[str] = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        activity_type: str | None = None,
     ) -> tuple[list[sqlite3.Row], int]:
         """Get activities with pagination and optional filters.
 
@@ -125,15 +125,14 @@ class ActivityRepository:
             where_sql = "WHERE " + " AND ".join(where_clauses)
 
         count_cursor = self._conn.execute(
-            f"SELECT COUNT(*) as cnt FROM activities {where_sql}",  # noqa: S608
+            f"SELECT COUNT(*) as cnt FROM activities {where_sql}",
             params,
         )
         total: int = count_cursor.fetchone()["cnt"]
 
         offset = (page - 1) * limit
         cursor = self._conn.execute(
-            f"SELECT * FROM activities {where_sql} "  # noqa: S608
-            "ORDER BY start_time DESC LIMIT ? OFFSET ?",
+            f"SELECT * FROM activities {where_sql} ORDER BY start_time DESC LIMIT ? OFFSET ?",
             [*params, limit, offset],
         )
         rows: list[sqlite3.Row] = cursor.fetchall()
@@ -142,7 +141,7 @@ class ActivityRepository:
     def get_heatmap_data(
         self,
         year: int,
-        activity_type: Optional[str] = None,
+        activity_type: str | None = None,
     ) -> list[sqlite3.Row]:
         """Get per-day activity aggregates for a calendar year."""
         params: list[Any] = [str(year)]
@@ -163,13 +162,13 @@ class ActivityRepository:
             {type_filter}
             GROUP BY date(start_time)
             ORDER BY date(start_time)
-            """,  # noqa: S608
+            """,
             params,
         )
         result: list[sqlite3.Row] = cursor.fetchall()
         return result
 
-    def get_summary_stats(self, start_date: str, end_date: str) -> Optional[sqlite3.Row]:
+    def get_summary_stats(self, start_date: str, end_date: str) -> sqlite3.Row | None:
         """Get aggregate stats for a date range."""
         cursor = self._conn.execute(
             """
@@ -186,7 +185,7 @@ class ActivityRepository:
             """,
             (start_date, end_date),
         )
-        row: Optional[sqlite3.Row] = cursor.fetchone()
+        row: sqlite3.Row | None = cursor.fetchone()
         return row
 
 
@@ -222,17 +221,17 @@ class BiometricsRepository:
         )
         self._conn.commit()
 
-    def get_by_date(self, date: str) -> Optional[sqlite3.Row]:
+    def get_by_date(self, date: str) -> sqlite3.Row | None:
         """Get biometrics for a specific date (ISO format string)."""
         cursor = self._conn.execute("SELECT * FROM biometrics WHERE date = ?", (date,))
-        row: Optional[sqlite3.Row] = cursor.fetchone()
+        row: sqlite3.Row | None = cursor.fetchone()
         return row
 
-    def get_latest_date(self) -> Optional[str]:
+    def get_latest_date(self) -> str | None:
         """Return the most recent date with biometrics data, or None."""
         cursor = self._conn.execute("SELECT date FROM biometrics ORDER BY date DESC LIMIT 1")
         row = cursor.fetchone()
-        result: Optional[str] = row["date"] if row else None
+        result: str | None = row["date"] if row else None
         return result
 
     def count(self) -> int:
@@ -250,7 +249,7 @@ class BiometricsRepository:
         result: list[sqlite3.Row] = cursor.fetchall()
         return result
 
-    def get_avg_stats(self, start_date: str, end_date: str) -> Optional[sqlite3.Row]:
+    def get_avg_stats(self, start_date: str, end_date: str) -> sqlite3.Row | None:
         """Get average biometrics for a date range."""
         cursor = self._conn.execute(
             """
@@ -265,7 +264,7 @@ class BiometricsRepository:
             """,
             (start_date, end_date),
         )
-        row: Optional[sqlite3.Row] = cursor.fetchone()
+        row: sqlite3.Row | None = cursor.fetchone()
         return row
 
 
@@ -304,17 +303,17 @@ class SleepRepository:
         )
         self._conn.commit()
 
-    def get_by_date(self, date: str) -> Optional[sqlite3.Row]:
+    def get_by_date(self, date: str) -> sqlite3.Row | None:
         """Get sleep data for a specific date (ISO format string)."""
         cursor = self._conn.execute("SELECT * FROM sleep WHERE date = ?", (date,))
-        row: Optional[sqlite3.Row] = cursor.fetchone()
+        row: sqlite3.Row | None = cursor.fetchone()
         return row
 
-    def get_latest_date(self) -> Optional[str]:
+    def get_latest_date(self) -> str | None:
         """Return the most recent date with sleep data, or None."""
         cursor = self._conn.execute("SELECT date FROM sleep ORDER BY date DESC LIMIT 1")
         row = cursor.fetchone()
-        result: Optional[str] = row["date"] if row else None
+        result: str | None = row["date"] if row else None
         return result
 
     def count(self) -> int:
@@ -332,7 +331,7 @@ class SleepRepository:
         result: list[sqlite3.Row] = cursor.fetchall()
         return result
 
-    def get_avg_stats(self, start_date: str, end_date: str) -> Optional[sqlite3.Row]:
+    def get_avg_stats(self, start_date: str, end_date: str) -> sqlite3.Row | None:
         """Get average sleep stats for a date range."""
         cursor = self._conn.execute(
             """
@@ -348,7 +347,7 @@ class SleepRepository:
             """,
             (start_date, end_date),
         )
-        row: Optional[sqlite3.Row] = cursor.fetchone()
+        row: sqlite3.Row | None = cursor.fetchone()
         return row
 
 
@@ -363,7 +362,7 @@ class SyncLogRepository:
         sync_type: str,
         records_synced: int,
         status: str = "success",
-        error_message: Optional[str] = None,
+        error_message: str | None = None,
     ) -> None:
         """Append a sync log entry."""
         self._conn.execute(
@@ -375,7 +374,7 @@ class SyncLogRepository:
         )
         self._conn.commit()
 
-    def get_latest(self, sync_type: Optional[str] = None) -> Optional[sqlite3.Row]:
+    def get_latest(self, sync_type: str | None = None) -> sqlite3.Row | None:
         """Get the most recent sync log entry, optionally filtered by type."""
         if sync_type:
             cursor = self._conn.execute(
@@ -384,7 +383,7 @@ class SyncLogRepository:
             )
         else:
             cursor = self._conn.execute("SELECT * FROM sync_log ORDER BY id DESC LIMIT 1")
-        row: Optional[sqlite3.Row] = cursor.fetchone()
+        row: sqlite3.Row | None = cursor.fetchone()
         return row
 
     def get_all(self, limit: int = 100) -> list[sqlite3.Row]:

@@ -2,7 +2,7 @@
 
 import json
 import tempfile
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -33,7 +33,7 @@ def mock_activity() -> NormalizedActivity:
         activity_id=100,
         activity_name="Test Run",
         activity_type="running",
-        start_time=datetime(2026, 2, 28, 7, 0, 0),
+        start_time=datetime(2026, 2, 28, 7, 0, 0, tzinfo=UTC),
         duration_seconds=1800.0,
         distance_meters=5000.0,
         average_heart_rate=140,
@@ -60,8 +60,8 @@ def mock_biometrics() -> DailyBiometrics:
 def mock_sleep() -> SleepData:
     return SleepData(
         date=date(2026, 2, 28),
-        sleep_start=datetime(2026, 2, 27, 23, 0),
-        sleep_end=datetime(2026, 2, 28, 7, 0),
+        sleep_start=datetime(2026, 2, 27, 23, 0, tzinfo=UTC),
+        sleep_end=datetime(2026, 2, 28, 7, 0, tzinfo=UTC),
         total_sleep_seconds=28800,
         deep_sleep_seconds=7200,
         light_sleep_seconds=10800,
@@ -91,7 +91,7 @@ class TestConverterFunctions:
     def test_sleep_to_row(self, mock_sleep: SleepData) -> None:
         row = sleep_to_row(mock_sleep)
         assert row["date"] == "2026-02-28"
-        assert row["sleep_start"] == "2026-02-27T23:00:00"
+        assert row["sleep_start"] == "2026-02-27T23:00:00+00:00"
         assert row["sleep_score"] == 85
 
     def test_sleep_to_row_with_nulls(self) -> None:
@@ -103,24 +103,22 @@ class TestConverterFunctions:
 
 class TestDatesToSync:
     def test_full_returns_all_dates(self) -> None:
-        with patch("garsync.cli.date") as mock_date:
-            mock_date.today.return_value = date(2026, 2, 28)
-            mock_date.fromisoformat = date.fromisoformat
+        with patch("garsync.cli.datetime") as mock_datetime:
+            mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC)
 
             dates = _dates_to_sync(days=3, full=True, latest_date="2026-02-27")
             assert len(dates) == 3
 
     def test_no_latest_returns_all(self) -> None:
-        with patch("garsync.cli.date") as mock_date:
-            mock_date.today.return_value = date(2026, 2, 28)
+        with patch("garsync.cli.datetime") as mock_datetime:
+            mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC)
 
             dates = _dates_to_sync(days=3, full=False, latest_date=None)
             assert len(dates) == 3
 
     def test_incremental_skips_old_dates(self) -> None:
-        with patch("garsync.cli.date") as mock_date:
-            mock_date.today.return_value = date(2026, 2, 28)
-            mock_date.fromisoformat = date.fromisoformat
+        with patch("garsync.cli.datetime") as mock_datetime:
+            mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC)
 
             dates = _dates_to_sync(days=5, full=False, latest_date="2026-02-27")
             # Should only include 2026-02-28 and 2026-02-27 (>= cutoff)
@@ -160,10 +158,9 @@ class TestSyncPipelineDB:
 
             with (
                 patch("garsync.cli.GarminClient", return_value=mock_client),
-                patch("garsync.cli.date") as mock_date,
+                patch("garsync.cli.datetime") as mock_datetime,
             ):
-                mock_date.today.return_value = date(2026, 2, 28)
-                mock_date.fromisoformat = date.fromisoformat
+                mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC)
 
                 result = runner.invoke(
                     app,
@@ -202,10 +199,9 @@ class TestSyncPipelineDB:
 
             with (
                 patch("garsync.cli.GarminClient", return_value=mock_client),
-                patch("garsync.cli.date") as mock_date,
+                patch("garsync.cli.datetime") as mock_datetime,
             ):
-                mock_date.today.return_value = date(2026, 2, 28)
-                mock_date.fromisoformat = date.fromisoformat
+                mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC)
 
                 result = runner.invoke(
                     app,
@@ -242,10 +238,9 @@ class TestSyncPipelineDB:
 
             with (
                 patch("garsync.cli.GarminClient", return_value=mock_client),
-                patch("garsync.cli.date") as mock_date,
+                patch("garsync.cli.datetime") as mock_datetime,
             ):
-                mock_date.today.return_value = date(2026, 2, 28)
-                mock_date.fromisoformat = date.fromisoformat
+                mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC)
 
                 result = runner.invoke(
                     app,
@@ -287,10 +282,9 @@ class TestSyncPipelineDB:
 
             with (
                 patch("garsync.cli.GarminClient", return_value=mock_client),
-                patch("garsync.cli.date") as mock_date,
+                patch("garsync.cli.datetime") as mock_datetime,
             ):
-                mock_date.today.return_value = date(2026, 2, 28)
-                mock_date.fromisoformat = date.fromisoformat
+                mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC)
 
                 result = runner.invoke(
                     app,
@@ -329,10 +323,9 @@ class TestSyncPipelineDB:
 
             with (
                 patch("garsync.cli.GarminClient", return_value=mock_client),
-                patch("garsync.cli.date") as mock_date,
+                patch("garsync.cli.datetime") as mock_datetime,
             ):
-                mock_date.today.return_value = date(2026, 2, 28)
-                mock_date.fromisoformat = date.fromisoformat
+                mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC)
 
                 # First full sync
                 runner.invoke(

@@ -1,7 +1,5 @@
 """Activity endpoints."""
 
-from typing import Optional
-
 from fastapi import APIRouter, Depends, Query
 
 from garsync.api.deps import get_activity_repo
@@ -15,9 +13,9 @@ router = APIRouter(prefix="/api", tags=["activities"])
 def list_activities(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
-    start_date: Optional[str] = Query(default=None),
-    end_date: Optional[str] = Query(default=None),
-    activity_type: Optional[str] = Query(default=None),
+    start_date: str | None = Query(default=None),
+    end_date: str | None = Query(default=None),
+    activity_type: str | None = Query(default=None),
     repo: ActivityRepository = Depends(get_activity_repo),
 ) -> PaginatedActivities:
     """List activities with pagination and optional filters."""

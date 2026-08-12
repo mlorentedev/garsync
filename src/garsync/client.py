@@ -1,7 +1,6 @@
 import datetime
 import logging
 import os
-from typing import List, Optional
 
 from garminconnect import Garmin
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -14,7 +13,7 @@ logger = logging.getLogger(__name__)
 class GarminClient:
     """Wrapper for Garmin Connect API with token caching support."""
 
-    def __init__(self, email: str, password: str, token_store: Optional[str] = None):
+    def __init__(self, email: str, password: str, token_store: str | None = None):
         self.email = email
         self.password = password
         self.token_store = token_store
@@ -47,12 +46,12 @@ class GarminClient:
                     if self.token_store:
                         self.client.garth.save(self.token_store)
                     return
-                except Exception as cred_err:
+                except Exception as cred_err:  # noqa: BLE001
                     logger.error(f"Fallback credential login also failed: {cred_err}")
             raise
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-    def fetch_activities(self, start: int = 0, limit: int = 100) -> List[NormalizedActivity]:
+    def fetch_activities(self, start: int = 0, limit: int = 100) -> list[NormalizedActivity]:
         logger.info(f"Fetching activities (start={start}, limit={limit})...")
         raw_activities = self.client.get_activities(start, limit)
         activities = []
@@ -78,7 +77,7 @@ class GarminClient:
                         raw_data=raw,
                     )
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.warning(f"Failed to parse activity {raw.get('activityId')}: {e}")
         return activities
 

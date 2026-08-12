@@ -1,9 +1,9 @@
 """CLI interface for garsync."""
 
 import json
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import typer
 from rich.console import Console
@@ -17,9 +17,9 @@ app = typer.Typer(help="GarSync: Garmin Connect data extraction pipeline")
 console = Console()
 
 
-def _dates_to_sync(days: int, full: bool, latest_date: Optional[str]) -> list[date]:
+def _dates_to_sync(days: int, full: bool, latest_date: str | None) -> list[date]:
     """Calculate the list of dates that need synchronization."""
-    today = date.today()
+    today = datetime.now(UTC).date()
 
     if full or not latest_date:
         # Full sync: all dates in the requested range
@@ -38,8 +38,8 @@ def _dates_to_sync(days: int, full: bool, latest_date: Optional[str]) -> list[da
 def sync(
     email: str = typer.Option(..., envvar="GARMIN_EMAIL", help="Garmin Connect Email"),
     password: str = typer.Option(..., envvar="GARMIN_PASSWORD", help="Garmin Connect Password"),
-    db: Optional[str] = typer.Option(None, help="Path to SQLite database"),
-    output: Optional[str] = typer.Option(None, help="Path to output JSON file"),
+    db: str | None = typer.Option(None, help="Path to SQLite database"),
+    output: str | None = typer.Option(None, help="Path to output JSON file"),
     days: int = typer.Option(7, help="Number of days to sync"),
     full: bool = typer.Option(False, help="Force full sync (ignore incremental logic)"),
     activities_limit: int = typer.Option(100, help="Max activities to fetch"),
@@ -90,17 +90,17 @@ def sync(
             for d in dates:
                 try:
                     sync_results["biometrics"].append(client.fetch_biometrics(d))
-                except Exception:
+                except Exception:  # noqa: S110, BLE001
                     pass
                 try:
                     sync_results["sleep"].append(client.fetch_sleep(d))
-                except Exception:
+                except Exception:  # noqa: S110, BLE001
                     pass
 
         # Save to JSON (Simplified for brevity in this refactor)
         with open(output, "w") as f:
             # We would need proper serialization here for full JSON support
-            f.write(json.dumps({"status": "completed", "timestamp": datetime.now().isoformat()}))
+            f.write(json.dumps({"status": "completed", "timestamp": datetime.now(UTC).isoformat()}))
         console.print(f"[green]JSON output saved to {output}[/green]")
 
 

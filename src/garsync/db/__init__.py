@@ -10,11 +10,11 @@ from garsync.db.repository import (
 from garsync.db.schema import CURRENT_VERSION, init_db
 
 __all__ = [
-    "get_connection",
-    "init_db",
     "CURRENT_VERSION",
     "ActivityRepository",
     "BiometricsRepository",
     "SleepRepository",
     "SyncLogRepository",
+    "get_connection",
+    "init_db",
 ]
