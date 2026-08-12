@@ -1,7 +1,6 @@
 import datetime
 import logging
 import os
-from typing import List
 
 from garminconnect import Garmin
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -52,7 +51,7 @@ class GarminClient:
             raise
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-    def fetch_activities(self, start: int = 0, limit: int = 100) -> List[NormalizedActivity]:
+    def fetch_activities(self, start: int = 0, limit: int = 100) -> list[NormalizedActivity]:
         logger.info(f"Fetching activities (start={start}, limit={limit})...")
         raw_activities = self.client.get_activities(start, limit)
         activities = []
