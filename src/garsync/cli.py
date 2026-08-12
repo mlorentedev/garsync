@@ -1,7 +1,7 @@
 """CLI interface for garsync."""
 
 import json
-from datetime import date, datetime, timedelta, UTC
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -90,17 +90,17 @@ def sync(
             for d in dates:
                 try:
                     sync_results["biometrics"].append(client.fetch_biometrics(d))
-                except Exception:
+                except Exception:  # noqa: S110, BLE001
                     pass
                 try:
                     sync_results["sleep"].append(client.fetch_sleep(d))
-                except Exception:
+                except Exception:  # noqa: S110, BLE001
                     pass
 
         # Save to JSON (Simplified for brevity in this refactor)
         with open(output, "w") as f:
             # We would need proper serialization here for full JSON support
-            f.write(json.dumps({"status": "completed", "timestamp": datetime.now().isoformat()}))
+            f.write(json.dumps({"status": "completed", "timestamp": datetime.now(UTC).isoformat()}))
         console.print(f"[green]JSON output saved to {output}[/green]")
 
 

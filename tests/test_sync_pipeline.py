@@ -2,7 +2,7 @@
 
 import json
 import tempfile
-from datetime import date, datetime, UTC
+from datetime import UTC, date, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -33,7 +33,7 @@ def mock_activity() -> NormalizedActivity:
         activity_id=100,
         activity_name="Test Run",
         activity_type="running",
-        start_time=datetime(2026, 2, 28, 7, 0, 0),
+        start_time=datetime(2026, 2, 28, 7, 0, 0, tzinfo=UTC),
         duration_seconds=1800.0,
         distance_meters=5000.0,
         average_heart_rate=140,
@@ -60,8 +60,8 @@ def mock_biometrics() -> DailyBiometrics:
 def mock_sleep() -> SleepData:
     return SleepData(
         date=date(2026, 2, 28),
-        sleep_start=datetime(2026, 2, 27, 23, 0),
-        sleep_end=datetime(2026, 2, 28, 7, 0),
+        sleep_start=datetime(2026, 2, 27, 23, 0, tzinfo=UTC),
+        sleep_end=datetime(2026, 2, 28, 7, 0, tzinfo=UTC),
         total_sleep_seconds=28800,
         deep_sleep_seconds=7200,
         light_sleep_seconds=10800,
@@ -91,7 +91,7 @@ class TestConverterFunctions:
     def test_sleep_to_row(self, mock_sleep: SleepData) -> None:
         row = sleep_to_row(mock_sleep)
         assert row["date"] == "2026-02-28"
-        assert row["sleep_start"] == "2026-02-27T23:00:00"
+        assert row["sleep_start"] == "2026-02-27T23:00:00+00:00"
         assert row["sleep_score"] == 85
 
     def test_sleep_to_row_with_nulls(self) -> None:

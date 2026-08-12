@@ -147,7 +147,7 @@ class TestActivityRepositoryPaginated:
         repo = ActivityRepository(in_memory_db)
         _seed_activities(repo, sample_activity_row, 5)
 
-        rows, total = repo.get_paginated(
+        _, total = repo.get_paginated(
             page=1, limit=10, start_date="2026-02-21", end_date="2026-02-23"
         )
         assert total == 3  # Feb 21, 22, 23
@@ -158,7 +158,7 @@ class TestActivityRepositoryPaginated:
         repo = ActivityRepository(in_memory_db)
         _seed_activities(repo, sample_activity_row, 5)
 
-        rows, total = repo.get_paginated(page=1, limit=10, activity_type="running")
+        _, total = repo.get_paginated(page=1, limit=10, activity_type="running")
         assert total == 2  # indices 0 and 3
 
     def test_get_paginated_empty(self, in_memory_db: sqlite3.Connection) -> None:

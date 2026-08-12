@@ -125,15 +125,14 @@ class ActivityRepository:
             where_sql = "WHERE " + " AND ".join(where_clauses)
 
         count_cursor = self._conn.execute(
-            f"SELECT COUNT(*) as cnt FROM activities {where_sql}",  # noqa: S608
+            f"SELECT COUNT(*) as cnt FROM activities {where_sql}",
             params,
         )
         total: int = count_cursor.fetchone()["cnt"]
 
         offset = (page - 1) * limit
         cursor = self._conn.execute(
-            f"SELECT * FROM activities {where_sql} "  # noqa: S608
-            "ORDER BY start_time DESC LIMIT ? OFFSET ?",
+            f"SELECT * FROM activities {where_sql} ORDER BY start_time DESC LIMIT ? OFFSET ?",
             [*params, limit, offset],
         )
         rows: list[sqlite3.Row] = cursor.fetchall()
@@ -163,7 +162,7 @@ class ActivityRepository:
             {type_filter}
             GROUP BY date(start_time)
             ORDER BY date(start_time)
-            """,  # noqa: S608
+            """,
             params,
         )
         result: list[sqlite3.Row] = cursor.fetchall()

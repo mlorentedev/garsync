@@ -1,7 +1,7 @@
 """Full end-to-end integration test: CLI sync → SQLite DB → FastAPI API."""
 
 import tempfile
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -24,7 +24,7 @@ def mock_garmin_data():
         activity_id=999,
         activity_name="Integration Run",
         activity_type="running",
-        start_time=datetime(2026, 3, 7, 10, 0, 0),
+        start_time=datetime(2026, 3, 7, 10, 0, 0, tzinfo=UTC),
         duration_seconds=3600.0,
         distance_meters=10000.0,
         average_heart_rate=150,
@@ -43,8 +43,8 @@ def mock_garmin_data():
     )
     sleep = SleepData(
         date=date(2026, 3, 7),
-        sleep_start=datetime(2026, 3, 6, 23, 0),
-        sleep_end=datetime(2026, 3, 7, 7, 0),
+        sleep_start=datetime(2026, 3, 6, 23, 0, tzinfo=UTC),
+        sleep_end=datetime(2026, 3, 7, 7, 0, tzinfo=UTC),
         total_sleep_seconds=28800,
         sleep_score=92,
         raw_data={"source": "integration-test"},

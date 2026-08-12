@@ -46,7 +46,7 @@ class GarminClient:
                     if self.token_store:
                         self.client.garth.save(self.token_store)
                     return
-                except Exception as cred_err:
+                except Exception as cred_err:  # noqa: BLE001
                     logger.error(f"Fallback credential login also failed: {cred_err}")
             raise
 
@@ -77,7 +77,7 @@ class GarminClient:
                         raw_data=raw,
                     )
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.warning(f"Failed to parse activity {raw.get('activityId')}: {e}")
         return activities
 

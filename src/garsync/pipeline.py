@@ -90,7 +90,7 @@ class SyncService:
                 self.activity_repo.upsert(activity_to_row(activity))
             results["activities"] = len(activities)
             self.sync_log_repo.log("activities", len(activities), "success")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Failed to sync activities: {e}")
             self.sync_log_repo.log("activities", 0, "error", str(e))
             results["errors"] += 1
@@ -105,7 +105,7 @@ class SyncService:
                 self.biometrics_repo.upsert(biometrics_to_row(bio))
                 results["biometrics"] += 1
                 self.sync_log_repo.log("biometrics", 1, "success")
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.warning(f"Failed to sync biometrics for {date_str}: {e}")
                 self.sync_log_repo.log("biometrics", 0, "error", f"{date_str}: {e}")
                 results["errors"] += 1
@@ -116,7 +116,7 @@ class SyncService:
                 self.sleep_repo.upsert(sleep_to_row(sleep))
                 results["sleep"] += 1
                 self.sync_log_repo.log("sleep", 1, "success")
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.warning(f"Failed to sync sleep for {date_str}: {e}")
                 self.sync_log_repo.log("sleep", 0, "error", f"{date_str}: {e}")
                 results["errors"] += 1
