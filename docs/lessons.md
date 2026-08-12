@@ -113,3 +113,10 @@ This ensures every feature/fix results in a single, well-formatted commit on the
 **Solution:** Date inputs should trigger data fetching reactively — no explicit sync action needed. Changing date range = automatic API call to load matching data.
 **Why:** The sync-then-view model adds friction. For a personal dashboard, reactive data loading on date change is the expected UX. `make sync` remains for CLI-only bulk imports from Garmin Connect, but the dashboard should never require it.
 **Tags:** `#ux` `#frontend` `#decision`
+
+### [2026-08-12] Ruff 0.16.2 Upgrade: Cascading Lint Rules
+**Context:** Dependabot PR #29 bumped ruff from 0.15.4 to 0.16.2, new rules flagged existing code across 10+ source files.
+**Problem:** Each PR commit to fix the CI pushed a new set of ruff rules, requiring 4 separate fix commits: UP045 (Optional[X]→X|None), UP017 (timezone.utc→UTC), UP006/UP035 (List→list), B008 (Depends config), DTZ011/DTZ005/DTZ001 (timezone-aware datetimes), S110/BLE001 (try-except-pass), RUF022 (__all__ sort), RUF059 (unused unpacked), RUF100 (unused noqa).
+**Solution:** Instead of fixing incrementally (each CI run reveals more rules), fix locally with the target ruff version: `pip install ruff==<version>` and run `ruff check --fix src/ tests/` to catch ALL new rules in one pass.
+**Why:** The dependabot PR bumps ruff to the newest version, which introduces progressively stricter rules. Each CI run uncovers more rules, causing a multi-commit cascade. Fixing locally with the exact target version avoids this.
+**Tags:** `#ruff` `#linting` `#ci` `#gotcha`
