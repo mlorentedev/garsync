@@ -1,7 +1,7 @@
 import datetime
 import logging
 import os
-from typing import List, Optional
+from typing import List
 
 from garminconnect import Garmin
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class GarminClient:
     """Wrapper for Garmin Connect API with token caching support."""
 
-    def __init__(self, email: str, password: str, token_store: Optional[str] = None):
+    def __init__(self, email: str, password: str, token_store: str | None = None):
         self.email = email
         self.password = password
         self.token_store = token_store

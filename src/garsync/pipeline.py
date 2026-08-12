@@ -4,7 +4,7 @@ import json
 import logging
 import sqlite3
 from datetime import date
-from typing import Any, Optional
+from typing import Any
 
 from garsync.client import GarminClient
 from garsync.db import (
@@ -123,6 +123,6 @@ class SyncService:
 
         return results
 
-    def get_latest_synced_date(self) -> Optional[str]:
+    def get_latest_synced_date(self) -> str | None:
         """Get the most recent date present in the biometrics table."""
         return self.biometrics_repo.get_latest_date()

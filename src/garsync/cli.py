@@ -1,9 +1,9 @@
 """CLI interface for garsync."""
 
 import json
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import typer
 from rich.console import Console
@@ -17,9 +17,9 @@ app = typer.Typer(help="GarSync: Garmin Connect data extraction pipeline")
 console = Console()
 
 
-def _dates_to_sync(days: int, full: bool, latest_date: Optional[str]) -> list[date]:
+def _dates_to_sync(days: int, full: bool, latest_date: str | None) -> list[date]:
     """Calculate the list of dates that need synchronization."""
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
 
     if full or not latest_date:
         # Full sync: all dates in the requested range
@@ -38,8 +38,8 @@ def _dates_to_sync(days: int, full: bool, latest_date: Optional[str]) -> list[da
 def sync(
     email: str = typer.Option(..., envvar="GARMIN_EMAIL", help="Garmin Connect Email"),
     password: str = typer.Option(..., envvar="GARMIN_PASSWORD", help="Garmin Connect Password"),
-    db: Optional[str] = typer.Option(None, help="Path to SQLite database"),
-    output: Optional[str] = typer.Option(None, help="Path to output JSON file"),
+    db: str | None = typer.Option(None, help="Path to SQLite database"),
+    output: str | None = typer.Option(None, help="Path to output JSON file"),
     days: int = typer.Option(7, help="Number of days to sync"),
     full: bool = typer.Option(False, help="Force full sync (ignore incremental logic)"),
     activities_limit: int = typer.Option(100, help="Max activities to fetch"),

@@ -1,7 +1,6 @@
 """Stats endpoints — summary and heatmap."""
 
-from datetime import date, timedelta
-from typing import Optional
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Query
 
@@ -23,11 +22,11 @@ router = APIRouter(prefix="/api/stats", tags=["stats"])
 
 def _resolve_dates(
     period: str,
-    start_date: Optional[str],
-    end_date: Optional[str],
+    start_date: str | None,
+    end_date: str | None,
 ) -> tuple[str, str]:
     """Resolve start/end dates from period or explicit params."""
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     if start_date and end_date:
         return start_date, end_date
     if period == "week":
@@ -42,8 +41,8 @@ def _resolve_dates(
 @router.get("/summary", response_model=SummaryStats)
 def summary(
     period: str = Query(default="week"),
-    start_date: Optional[str] = Query(default=None),
-    end_date: Optional[str] = Query(default=None),
+    start_date: str | None = Query(default=None),
+    end_date: str | None = Query(default=None),
     activity_repo: ActivityRepository = Depends(get_activity_repo),
     biometrics_repo: BiometricsRepository = Depends(get_biometrics_repo),
     sleep_repo: SleepRepository = Depends(get_sleep_repo),
@@ -92,12 +91,12 @@ def _compute_intensity(count: int, max_count: int) -> int:
 
 @router.get("/heatmap", response_model=HeatmapResponse)
 def heatmap(
-    year: Optional[int] = Query(default=None),
-    activity_type: Optional[str] = Query(default=None),
+    year: int | None = Query(default=None),
+    activity_type: str | None = Query(default=None),
     repo: ActivityRepository = Depends(get_activity_repo),
 ) -> HeatmapResponse:
     """Get activity heatmap data for a year."""
-    target_year = year or date.today().year
+    target_year = year or datetime.now(timezone.utc).date().year
     rows = repo.get_heatmap_data(target_year, activity_type)
 
     max_count = max((row["activity_count"] for row in rows), default=0)

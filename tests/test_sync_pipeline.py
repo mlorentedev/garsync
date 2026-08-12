@@ -2,7 +2,7 @@
 
 import json
 import tempfile
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -103,24 +103,22 @@ class TestConverterFunctions:
 
 class TestDatesToSync:
     def test_full_returns_all_dates(self) -> None:
-        with patch("garsync.cli.date") as mock_date:
-            mock_date.today.return_value = date(2026, 2, 28)
-            mock_date.fromisoformat = date.fromisoformat
+        with patch("garsync.cli.datetime") as mock_datetime:
+            mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc)
 
             dates = _dates_to_sync(days=3, full=True, latest_date="2026-02-27")
             assert len(dates) == 3
 
     def test_no_latest_returns_all(self) -> None:
-        with patch("garsync.cli.date") as mock_date:
-            mock_date.today.return_value = date(2026, 2, 28)
+        with patch("garsync.cli.datetime") as mock_datetime:
+            mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc)
 
             dates = _dates_to_sync(days=3, full=False, latest_date=None)
             assert len(dates) == 3
 
     def test_incremental_skips_old_dates(self) -> None:
-        with patch("garsync.cli.date") as mock_date:
-            mock_date.today.return_value = date(2026, 2, 28)
-            mock_date.fromisoformat = date.fromisoformat
+        with patch("garsync.cli.datetime") as mock_datetime:
+            mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc)
 
             dates = _dates_to_sync(days=5, full=False, latest_date="2026-02-27")
             # Should only include 2026-02-28 and 2026-02-27 (>= cutoff)
@@ -160,10 +158,11 @@ class TestSyncPipelineDB:
 
             with (
                 patch("garsync.cli.GarminClient", return_value=mock_client),
-                patch("garsync.cli.date") as mock_date,
+                patch("garsync.cli.datetime") as mock_datetime,
             ):
-                mock_date.today.return_value = date(2026, 2, 28)
-                mock_date.fromisoformat = date.fromisoformat
+                mock_datetime.now.return_value = datetime(
+                    2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc
+                )
 
                 result = runner.invoke(
                     app,
@@ -202,10 +201,11 @@ class TestSyncPipelineDB:
 
             with (
                 patch("garsync.cli.GarminClient", return_value=mock_client),
-                patch("garsync.cli.date") as mock_date,
+                patch("garsync.cli.datetime") as mock_datetime,
             ):
-                mock_date.today.return_value = date(2026, 2, 28)
-                mock_date.fromisoformat = date.fromisoformat
+                mock_datetime.now.return_value = datetime(
+                    2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc
+                )
 
                 result = runner.invoke(
                     app,
@@ -242,10 +242,11 @@ class TestSyncPipelineDB:
 
             with (
                 patch("garsync.cli.GarminClient", return_value=mock_client),
-                patch("garsync.cli.date") as mock_date,
+                patch("garsync.cli.datetime") as mock_datetime,
             ):
-                mock_date.today.return_value = date(2026, 2, 28)
-                mock_date.fromisoformat = date.fromisoformat
+                mock_datetime.now.return_value = datetime(
+                    2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc
+                )
 
                 result = runner.invoke(
                     app,
@@ -287,10 +288,11 @@ class TestSyncPipelineDB:
 
             with (
                 patch("garsync.cli.GarminClient", return_value=mock_client),
-                patch("garsync.cli.date") as mock_date,
+                patch("garsync.cli.datetime") as mock_datetime,
             ):
-                mock_date.today.return_value = date(2026, 2, 28)
-                mock_date.fromisoformat = date.fromisoformat
+                mock_datetime.now.return_value = datetime(
+                    2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc
+                )
 
                 result = runner.invoke(
                     app,
@@ -329,10 +331,11 @@ class TestSyncPipelineDB:
 
             with (
                 patch("garsync.cli.GarminClient", return_value=mock_client),
-                patch("garsync.cli.date") as mock_date,
+                patch("garsync.cli.datetime") as mock_datetime,
             ):
-                mock_date.today.return_value = date(2026, 2, 28)
-                mock_date.fromisoformat = date.fromisoformat
+                mock_datetime.now.return_value = datetime(
+                    2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc
+                )
 
                 # First full sync
                 runner.invoke(
