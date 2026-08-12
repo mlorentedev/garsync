@@ -1,7 +1,7 @@
 """CLI interface for garsync."""
 
 import json
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, UTC
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +19,7 @@ console = Console()
 
 def _dates_to_sync(days: int, full: bool, latest_date: str | None) -> list[date]:
     """Calculate the list of dates that need synchronization."""
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
 
     if full or not latest_date:
         # Full sync: all dates in the requested range

@@ -2,7 +2,7 @@
 
 import json
 import tempfile
-from datetime import date, datetime, timezone
+from datetime import date, datetime, UTC
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -104,21 +104,21 @@ class TestConverterFunctions:
 class TestDatesToSync:
     def test_full_returns_all_dates(self) -> None:
         with patch("garsync.cli.datetime") as mock_datetime:
-            mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc)
+            mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC)
 
             dates = _dates_to_sync(days=3, full=True, latest_date="2026-02-27")
             assert len(dates) == 3
 
     def test_no_latest_returns_all(self) -> None:
         with patch("garsync.cli.datetime") as mock_datetime:
-            mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc)
+            mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC)
 
             dates = _dates_to_sync(days=3, full=False, latest_date=None)
             assert len(dates) == 3
 
     def test_incremental_skips_old_dates(self) -> None:
         with patch("garsync.cli.datetime") as mock_datetime:
-            mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc)
+            mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC)
 
             dates = _dates_to_sync(days=5, full=False, latest_date="2026-02-27")
             # Should only include 2026-02-28 and 2026-02-27 (>= cutoff)
@@ -160,9 +160,7 @@ class TestSyncPipelineDB:
                 patch("garsync.cli.GarminClient", return_value=mock_client),
                 patch("garsync.cli.datetime") as mock_datetime,
             ):
-                mock_datetime.now.return_value = datetime(
-                    2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc
-                )
+                mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC)
 
                 result = runner.invoke(
                     app,
@@ -203,9 +201,7 @@ class TestSyncPipelineDB:
                 patch("garsync.cli.GarminClient", return_value=mock_client),
                 patch("garsync.cli.datetime") as mock_datetime,
             ):
-                mock_datetime.now.return_value = datetime(
-                    2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc
-                )
+                mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC)
 
                 result = runner.invoke(
                     app,
@@ -244,9 +240,7 @@ class TestSyncPipelineDB:
                 patch("garsync.cli.GarminClient", return_value=mock_client),
                 patch("garsync.cli.datetime") as mock_datetime,
             ):
-                mock_datetime.now.return_value = datetime(
-                    2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc
-                )
+                mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC)
 
                 result = runner.invoke(
                     app,
@@ -290,9 +284,7 @@ class TestSyncPipelineDB:
                 patch("garsync.cli.GarminClient", return_value=mock_client),
                 patch("garsync.cli.datetime") as mock_datetime,
             ):
-                mock_datetime.now.return_value = datetime(
-                    2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc
-                )
+                mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC)
 
                 result = runner.invoke(
                     app,
@@ -333,9 +325,7 @@ class TestSyncPipelineDB:
                 patch("garsync.cli.GarminClient", return_value=mock_client),
                 patch("garsync.cli.datetime") as mock_datetime,
             ):
-                mock_datetime.now.return_value = datetime(
-                    2026, 2, 28, 12, 0, 0, tzinfo=timezone.utc
-                )
+                mock_datetime.now.return_value = datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC)
 
                 # First full sync
                 runner.invoke(

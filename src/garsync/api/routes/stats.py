@@ -1,6 +1,6 @@
 """Stats endpoints — summary and heatmap."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 
 from fastapi import APIRouter, Depends, Query
 
@@ -26,7 +26,7 @@ def _resolve_dates(
     end_date: str | None,
 ) -> tuple[str, str]:
     """Resolve start/end dates from period or explicit params."""
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     if start_date and end_date:
         return start_date, end_date
     if period == "week":
@@ -96,7 +96,7 @@ def heatmap(
     repo: ActivityRepository = Depends(get_activity_repo),
 ) -> HeatmapResponse:
     """Get activity heatmap data for a year."""
-    target_year = year or datetime.now(timezone.utc).date().year
+    target_year = year or datetime.now(UTC).date().year
     rows = repo.get_heatmap_data(target_year, activity_type)
 
     max_count = max((row["activity_count"] for row in rows), default=0)
