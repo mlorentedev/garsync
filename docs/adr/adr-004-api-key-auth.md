@@ -9,7 +9,7 @@ owner: manu
 # ADR-004: Simple API Key Authentication
 
 ## Status
-Proposed
+Accepted (implemented 2026-03). Amended by [ADR-006](adr-006-single-user-session-gate.md): the `dev_key` fallback anticipated below was removed, comparisons are constant-time, and the API key is now one of two credentials next to the password-based session gate.
 
 ## Context
 GarSync exposes personal health and fitness data via a FastAPI REST API. Currently, these endpoints are public. While the primary use case is local/self-hosted, accidental exposure to the internet or unauthorized local access poses a privacy risk.
