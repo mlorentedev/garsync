@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.5](https://github.com/mlorentedev/garsync/compare/v0.1.4...v0.1.5) (2026-08-12)
+
+
+### Bug Fixes
+
+* skip add-to-project for dependabot PRs and configure dependabot to ignore major astro bumps ([a513d7e](https://github.com/mlorentedev/garsync/commit/a513d7ee9ed925fc04b9bfa8ba19216e964d9a16))
+
+
+### Documentation
+
+* add lesson about ruff 0.16.2 cascading lint rules ([ddc9d03](https://github.com/mlorentedev/garsync/commit/ddc9d03311d36d912d23d979d4d68fd68759555c))
+
 ## [0.1.4](https://github.com/mlorentedev/garsync/compare/v0.1.3...v0.1.4) (2026-05-29)
 
 
