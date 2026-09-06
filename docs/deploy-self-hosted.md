@@ -46,7 +46,24 @@ Add this to your crontab (`crontab -e`):
 
 *Note: This assumes your Garmin credentials are baked into the image or provided via environment variables in the sync command.*
 
-## 5. Security (Reverse Proxy)
+## 5. Authentication (required before exposing the dashboard)
+
+Since v0.2.0 the API and the dashboard are protected by an application-level gate. Configure it through environment variables in `docker-compose.yml` (or your secrets file):
+
+| Variable | Purpose |
+|---|---|
+| `GARSYNC_ACCESS_PASSWORD` | Password for the `/login` page. A correct login sets a signed, `HttpOnly; SameSite=Lax; Secure` session cookie valid for 7 days. Rotating the password invalidates all sessions. **Set this before publishing the dashboard.** |
+| `GARSYNC_API_KEY` | Key for programmatic access to `/api/*` via the `X-API-KEY` header (e.g. scripts, cron). Missing header returns 401, wrong key returns 403. |
+| `GARSYNC_ALLOWED_ORIGINS` | Optional comma-separated list of explicit origins for CORS. Leave unset for a same-origin deployment (the default). `*` is rejected at startup because requests carry credentials. |
+| `GARSYNC_INSECURE_COOKIES` | Set to `1` only for local development over plain `http://`; it drops the `Secure` flag so the browser sends the session cookie. Never set it behind HTTPS. |
+
+If **neither** `GARSYNC_ACCESS_PASSWORD` nor `GARSYNC_API_KEY` is set, the application starts unprotected and logs a warning. That mode is only acceptable on a trusted local network.
+
+If only `GARSYNC_API_KEY` is set, `/api/*` requires the key but the dashboard pages are still served without a password (the application logs a warning at startup). Do not expose the dashboard in that configuration; whether it should be rejected outright is tracked in [#51](https://github.com/mlorentedev/garsync/issues/51).
+
+Failed logins are rate-limited per client IP (5 failures per 5 minutes, then 429). The limiter is in-memory and resets when the container restarts. The client IP is taken from the direct connection (`request.client.host`), so behind a reverse proxy every visitor shares the proxy's address and the same bucket; proxy-aware IP handling and a login origin check are tracked in [#50](https://github.com/mlorentedev/garsync/issues/50) and must land before the dashboard is exposed publicly.
+
+## 6. Security (Reverse Proxy)
 If you want to access your dashboard from outside your home network, use a reverse proxy like **Traefik**, **Nginx Proxy Manager**, or **Cloudflare Tunnels**.
 
 Example Traefik labels:
@@ -58,6 +75,6 @@ Example Traefik labels:
       - "traefik.http.routers.garsync.tls.certresolver=myresolver"
 ```
 
-## 6. Performance on Raspberry Pi
+## 7. Performance on Raspberry Pi
 - **SQLite WAL Mode:** Enabled by default in GarSync, this ensures the UI remains responsive even during a sync job.
 - **Resources:** GarSync is very lightweight. It runs comfortably on a Raspberry Pi 3B+ or 4 with < 200MB RAM.
