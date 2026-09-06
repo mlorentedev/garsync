@@ -1,6 +1,6 @@
 """Stats endpoints — summary and heatmap."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Query
 
@@ -41,14 +41,18 @@ def _resolve_dates(
 @router.get("/summary", response_model=SummaryStats)
 def summary(
     period: str = Query(default="week"),
-    start_date: str | None = Query(default=None),
-    end_date: str | None = Query(default=None),
+    start_date: date | None = Query(default=None),
+    end_date: date | None = Query(default=None),
     activity_repo: ActivityRepository = Depends(get_activity_repo),
     biometrics_repo: BiometricsRepository = Depends(get_biometrics_repo),
     sleep_repo: SleepRepository = Depends(get_sleep_repo),
 ) -> SummaryStats:
     """Get aggregated stats for a period."""
-    sd, ed = _resolve_dates(period, start_date, end_date)
+    sd, ed = _resolve_dates(
+        period,
+        start_date.isoformat() if start_date else None,
+        end_date.isoformat() if end_date else None,
+    )
 
     activity_stats = activity_repo.get_summary_stats(sd, ed)
     bio_stats = biometrics_repo.get_avg_stats(sd, ed)

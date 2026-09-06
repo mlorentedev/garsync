@@ -120,3 +120,27 @@ This ensures every feature/fix results in a single, well-formatted commit on the
 **Solution:** Instead of fixing incrementally (each CI run reveals more rules), fix locally with the target ruff version: `pip install ruff==<version>` and run `ruff check --fix src/ tests/` to catch ALL new rules in one pass.
 **Why:** The dependabot PR bumps ruff to the newest version, which introduces progressively stricter rules. Each CI run uncovers more rules, causing a multi-commit cascade. Fixing locally with the exact target version avoids this.
 **Tags:** `#ruff` `#linting` `#ci` `#gotcha`
+
+## L-004: `sops --rotate -i` MERGES recipients instead of replacing them
+
+- **Context:** SEC-001 secrets hardening — rotating from the master age key to a dedicated garsync identity
+- **Finding:** `sops --rotate -i` re-encrypts the data key to the new recipient but KEEPS the old stanza working (both keys decrypt). The `_recipient` metadata line only reflects the first entry, hiding the merge. The correct tool after editing `.sops.yaml` is `sops updatekeys --yes` — it prints the exact `+++ / ---` recipient diff, which IS the verification evidence.
+- **Pattern:** After changing `.sops.yaml` recipients, always use `updatekeys`, never `--rotate -i`. Verify by consequence: old key must fail (nonzero exit), new key must succeed.
+
+## L-005: Env vars are captured at `create_app()` time
+
+- **Context:** SEC-001 auth tests
+- **Finding:** The auth config (`GARSYNC_API_KEY`, `GARSYNC_ACCESS_PASSWORD`) is read inside `create_app()`. A test that calls `monkeypatch.setenv()` AFTER the factory call silently tests stale config (bit us: integration test set env after `create_app` and failed with 403).
+- **Pattern:** Pin env vars BEFORE building the app in any test.
+
+## L-006: httpx never sends `Secure` cookies over `http://`
+
+- **Context:** SEC-001 session cookie tests
+- **Finding:** The session cookie is flagged `Secure` (production posture). Tests pointed the httpx client at `http://test`, so the cookie was stored but never sent back — auth tests failed with a misleading 401 while login returned 303.
+- **Pattern:** Test Secure-cookie flows against an `https://` base_url, matching the real deployment.
+
+## L-007: `import datetime` + `from datetime import datetime` shadowing breaks PEP 604 unions at import time
+
+- **Context:** SEC-001 date typing in `routes/stats.py`
+- **Finding:** `import datetime` followed by `from datetime import datetime` rebinds the name to the CLASS, so `datetime.date | None` resolves to `datetime.datetime.date` (a method_descriptor) and fails collection with `TypeError: unsupported operand type(s) for |`.
+- **Pattern:** When both module and class are needed, `from datetime import date, datetime` and use bare `date | None`.

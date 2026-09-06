@@ -1,5 +1,7 @@
 """Activity endpoints."""
 
+import datetime
+
 from fastapi import APIRouter, Depends, Query
 
 from garsync.api.deps import get_activity_repo
@@ -13,8 +15,8 @@ router = APIRouter(prefix="/api", tags=["activities"])
 def list_activities(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
-    start_date: str | None = Query(default=None),
-    end_date: str | None = Query(default=None),
+    start_date: datetime.date | None = Query(default=None),
+    end_date: datetime.date | None = Query(default=None),
     activity_type: str | None = Query(default=None),
     repo: ActivityRepository = Depends(get_activity_repo),
 ) -> PaginatedActivities:
@@ -22,8 +24,8 @@ def list_activities(
     rows, total = repo.get_paginated(
         page=page,
         limit=limit,
-        start_date=start_date,
-        end_date=end_date,
+        start_date=start_date.isoformat() if start_date else None,
+        end_date=end_date.isoformat() if end_date else None,
         activity_type=activity_type,
     )
     items = [ActivityItem(**dict(row)) for row in rows]

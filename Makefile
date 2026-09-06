@@ -9,7 +9,7 @@ POETRY ?= poetry
 DAYS ?= 7
 SMOKE_PORT ?= 8099
 
-export SOPS_AGE_KEY_FILE ?= /home/manu/.config/age/key.txt
+export SOPS_AGE_KEY_FILE ?= /home/manu/.config/age/garsync.txt
 
 .DEFAULT_GOAL := help
 
