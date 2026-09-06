@@ -50,3 +50,11 @@ async def test_cors_non_allowlisted_origin_is_denied(seeded_db, monkeypatch) -> 
             headers=_preflight_headers("https://evil.example"),
         )
     assert resp.headers.get("access-control-allow-origin") != "https://evil.example"
+
+
+def test_cors_wildcard_origin_is_rejected_at_startup(seeded_db, monkeypatch) -> None:
+    """AC5: '*' must never be honored with credentials, so it fails closed at create_app()."""
+    monkeypatch.setenv("GARSYNC_API_KEY", API_KEY)
+    monkeypatch.setenv("GARSYNC_ALLOWED_ORIGINS", "https://ok.example, *")
+    with pytest.raises(ValueError, match="explicit origins"):
+        create_app()

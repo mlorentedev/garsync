@@ -97,9 +97,10 @@ def create_app(conn: sqlite3.Connection | None = None) -> FastAPI:
                         status_code=status.HTTP_403_FORBIDDEN,
                         content={"detail": "Invalid API key"},
                     )
-            if access_password:
-                if verify_session_token(request.cookies.get(SESSION_COOKIE_NAME), access_password):
-                    return await call_next(request)
+            if access_password and verify_session_token(
+                request.cookies.get(SESSION_COOKIE_NAME), access_password
+            ):
+                return await call_next(request)
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content={"detail": "Authentication required"},
@@ -159,6 +160,12 @@ def create_app(conn: sqlite3.Connection | None = None) -> FastAPI:
         for origin in os.environ.get("GARSYNC_ALLOWED_ORIGINS", "").split(",")
         if origin.strip()
     ]
+    if "*" in allowed_origins:
+        msg = (
+            "GARSYNC_ALLOWED_ORIGINS must list explicit origins; '*' is not allowed "
+            "because the API uses credentialed (cookie / X-API-KEY) requests."
+        )
+        raise ValueError(msg)
     if allowed_origins:
         app.add_middleware(
             CORSMiddleware,

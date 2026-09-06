@@ -24,7 +24,7 @@ def _resolve_dates(
     period: str,
     start_date: str | None,
     end_date: str | None,
-) -> tuple[str, str]:  # noqa: ARG001 — kept str-based; callers convert date->isoformat
+) -> tuple[str, str]:
     """Resolve start/end dates from period or explicit params."""
     today = datetime.now(UTC).date()
     if start_date and end_date:
