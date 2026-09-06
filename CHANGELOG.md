@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/mlorentedev/garsync/compare/v0.1.5...v0.2.0) (2026-09-06)
+
+
+### Features
+
+* **api:** add single-user auth gate and API hardening (SEC-001) ([#44](https://github.com/mlorentedev/garsync/issues/44)) ([1f6535f](https://github.com/mlorentedev/garsync/commit/1f6535fa2c705b882171aba6565070d912728114))
+
 ## [0.1.5](https://github.com/mlorentedev/garsync/compare/v0.1.4...v0.1.5) (2026-08-12)
 
 
