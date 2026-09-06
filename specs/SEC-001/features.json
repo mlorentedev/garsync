@@ -1,0 +1,44 @@
+[
+  {
+    "id": "SEC-001-f1",
+    "behavior": "AC1: unauthenticated dashboard request -> 302 /login; unauthenticated /api/* -> 401 JSON",
+    "verification": "poetry run pytest tests/api/test_auth.py::TestSessionGate -q",
+    "state": "pending",
+    "evidence": ""
+  },
+  {
+    "id": "SEC-001-f2",
+    "behavior": "AC2: correct password -> hardened session cookie grants access; logout revokes it",
+    "verification": "poetry run pytest tests/api/test_auth.py::TestLoginFlow -q",
+    "state": "pending",
+    "evidence": ""
+  },
+  {
+    "id": "SEC-001-f3",
+    "behavior": "AC3: 5 failed logins -> 6th attempt returns 429",
+    "verification": "poetry run pytest tests/api/test_auth.py::TestLoginRateLimit -q",
+    "state": "pending",
+    "evidence": ""
+  },
+  {
+    "id": "SEC-001-f4",
+    "behavior": "AC4: no dev_key fallback; constant-time credential comparison; 401-vs-403 semantics",
+    "verification": "poetry run pytest tests/api/test_auth.py::TestApiKeyStrict -q",
+    "state": "pending",
+    "evidence": ""
+  },
+  {
+    "id": "SEC-001-f5",
+    "behavior": "AC5: CORS allowlist via GARSYNC_ALLOWED_ORIGINS only; wildcard impossible; disabled when env unset",
+    "verification": "poetry run pytest tests/api/test_cors.py -q",
+    "state": "pending",
+    "evidence": ""
+  },
+  {
+    "id": "SEC-001-f6",
+    "behavior": "AC6: malformed date query params -> 422, never 500",
+    "verification": "poetry run pytest tests/api/test_auth.py::TestDateValidation -q",
+    "state": "pending",
+    "evidence": ""
+  }
+]

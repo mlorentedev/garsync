@@ -1,5 +1,7 @@
 const API = import.meta.env.PUBLIC_API_URL ?? "http://localhost:8000";
-const API_KEY = import.meta.env.PUBLIC_API_KEY ?? "dev_key";
+// SEC-001: no dev_key fallback — the key is only sent when provided at build time.
+// Same-origin deployments rely on the session cookie instead.
+const API_KEY: string | undefined = import.meta.env.PUBLIC_API_KEY;
 
 // --- Types matching FastAPI Pydantic schemas ---
 
@@ -114,11 +116,9 @@ async function get<T>(path: string, params?: Record<string, string>): Promise<T>
       if (v !== undefined && v !== null) url.searchParams.set(k, v);
     }
   }
-  const res = await fetch(url.toString(), {
-    headers: {
-      "X-API-KEY": API_KEY,
-    },
-  });
+  const headers: Record<string, string> = {};
+  if (API_KEY) headers["X-API-KEY"] = API_KEY;
+  const res = await fetch(url.toString(), { headers });
   if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
   return res.json() as Promise<T>;
 }

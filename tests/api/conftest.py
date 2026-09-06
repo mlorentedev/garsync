@@ -10,6 +10,8 @@ from garsync.api.main import create_app
 from garsync.db.connection import get_connection
 from garsync.db.schema import init_db
 
+TEST_API_KEY = "test-api-key"
+
 
 @pytest.fixture()
 def seeded_db() -> sqlite3.Connection:
@@ -24,11 +26,16 @@ def seeded_db() -> sqlite3.Connection:
 
 
 @pytest.fixture()
-async def client(seeded_db: sqlite3.Connection):
-    """httpx AsyncClient wired to an in-memory DB."""
+async def client(seeded_db: sqlite3.Connection, monkeypatch: pytest.MonkeyPatch):
+    """httpx AsyncClient wired to an in-memory DB.
+
+    Pins GARSYNC_API_KEY before create_app() — SEC-001 removed the dev_key
+    fallback, so the app reads the key from the env at factory time.
+    """
+    monkeypatch.setenv("GARSYNC_API_KEY", TEST_API_KEY)
     app = create_app(conn=seeded_db)
     transport = ASGITransport(app=app)
-    headers = {"X-API-KEY": "dev_key"}
+    headers = {"X-API-KEY": TEST_API_KEY}
     async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as c:
         yield c
 

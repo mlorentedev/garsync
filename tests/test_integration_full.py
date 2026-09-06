@@ -53,7 +53,7 @@ def mock_garmin_data():
 
 
 @pytest.mark.anyio
-async def test_full_pipeline_sync_to_api(mock_garmin_data) -> None:
+async def test_full_pipeline_sync_to_api(mock_garmin_data, monkeypatch: pytest.MonkeyPatch) -> None:
     activities, biometrics, sleep = mock_garmin_data
 
     # 1. Setup temporary DB
@@ -90,11 +90,12 @@ async def test_full_pipeline_sync_to_api(mock_garmin_data) -> None:
 
         conn = db_conn.get_connection(str(db_path))
 
+        monkeypatch.setenv("GARSYNC_API_KEY", "integration-test-key")
         app = create_app(conn=conn)
         transport = ASGITransport(app=app)
 
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            headers = {"X-API-KEY": "dev_key"}
+            headers = {"X-API-KEY": "integration-test-key"}
             # 5. Verify API endpoints
             # Check activities
             resp = await client.get("/api/activities", headers=headers)
