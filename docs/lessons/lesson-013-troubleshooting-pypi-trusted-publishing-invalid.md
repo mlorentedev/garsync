@@ -18,7 +18,7 @@ tags: [garsync, lesson, pypi, github-actions, oidc, trusted-publishing, devops]
 
 **Solution:** 1. Add `permissions: id-token: write` and `contents: read` to the job.
 2. Ensure the `environment: pypi` in the YAML matches the 'Environment' field in the PyPI Trusted Publisher settings.
-3. Verify that the 'Workflow Name' in PyPI is just the filename (e.g., `release.yml`) and the 'Branch' matches the repository's default branch (e.g., `master`).
+3. Verify that the 'Workflow name' in PyPI is exactly the workflow filename (`release.yml`, i.e. `.github/workflows/release.yml`). PyPI has no branch field; the branch restriction lives in the workflow trigger (`on: push: branches: [master]`), not in the publisher.
 4. The repository name in PyPI should not include the owner (e.g., `garsync`, not `mlorentedev/garsync`).
 
 **Tags:** `#pypi` `#github-actions` `#oidc` `#trusted-publishing` `#devops`
