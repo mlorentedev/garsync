@@ -18,6 +18,7 @@ GarSync exposes personal health and fitness data via a FastAPI REST API. Current
 We will implement a simple API Key authentication layer using a custom header `X-API-KEY`.
 - The key will be configurable via an environment variable `GARSYNC_API_KEY`.
 - If the variable is not set, a warning will be issued, but for ease of initial setup, it might remain optional or have a default "insecure" value in dev.
+  - *Amended by ADR-006 (2026-08-27): the insecure default was removed. An unset `GARSYNC_API_KEY` now means the header is simply not accepted; see ADR-006 for the fail-open rule.*
 - All frontend requests will be updated to include this header.
 
 ## Consequences

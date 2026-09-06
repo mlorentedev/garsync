@@ -20,7 +20,7 @@ Two designs were considered for the login step:
 - **Option B: Garmin credentials as the login.** Rejected. Proxying the owner's Garmin login through a public endpoint exposes the Garmin account to brute-force attempts and lockout, and Garmin serves captchas to datacenter IPs, so the flow would be unreliable exactly where it is deployed.
 
 ## Decision
-1. A single application password, `GARSYNC_ACCESS_PASSWORD`, gates every page. Unauthenticated requests to the dashboard redirect to `/login`; unauthenticated requests to `/api/*` receive 401 JSON. Credentials that are present but wrong receive 403.
+1. A single application password, `GARSYNC_ACCESS_PASSWORD`, gates every page. Page requests without a valid session cookie redirect to `/login`; `/api/*` requests without a valid session cookie or `X-API-KEY` header receive 401 JSON. An `X-API-KEY` header that is present but wrong receives 403. A wrong password on `POST /login` re-renders the login page with an error.
 2. A successful login issues a stateless session token signed with stdlib HMAC and keyed by the password, carried in an `HttpOnly; SameSite=Lax; Secure` cookie with a 7-day expiry embedded in the token. No new dependencies. Rotating the password invalidates all sessions; `GARSYNC_INSECURE_COOKIES=1` drops the `Secure` flag for local development only.
 3. Login attempts are rate-limited in memory per client IP (5 failures in 5 minutes, then 429). Accepted trade-off for a single replica: the counter resets on restart.
 4. The `X-API-KEY` credential from ADR-004 stays valid for programmatic `/api/*` access. Its `dev_key` fallback is removed and all comparisons use `secrets.compare_digest`.

@@ -59,7 +59,9 @@ Since v0.2.0 the API and the dashboard are protected by an application-level gat
 
 If **neither** `GARSYNC_ACCESS_PASSWORD` nor `GARSYNC_API_KEY` is set, the application starts unprotected and logs a warning. That mode is only acceptable on a trusted local network.
 
-Failed logins are rate-limited per client IP (5 failures per 5 minutes, then 429). The limiter is in-memory and resets when the container restarts.
+If only `GARSYNC_API_KEY` is set, `/api/*` requires the key but the dashboard pages are still served without a password (the application logs a warning at startup). Do not expose the dashboard in that configuration; whether it should be rejected outright is tracked in [#51](https://github.com/mlorentedev/garsync/issues/51).
+
+Failed logins are rate-limited per client IP (5 failures per 5 minutes, then 429). The limiter is in-memory and resets when the container restarts. The client IP is taken from the direct connection (`request.client.host`), so behind a reverse proxy every visitor shares the proxy's address and the same bucket; proxy-aware IP handling and a login origin check are tracked in [#50](https://github.com/mlorentedev/garsync/issues/50) and must land before the dashboard is exposed publicly.
 
 ## 6. Security (Reverse Proxy)
 If you want to access your dashboard from outside your home network, use a reverse proxy like **Traefik**, **Nginx Proxy Manager**, or **Cloudflare Tunnels**.
