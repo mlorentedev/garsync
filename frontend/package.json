@@ -18,5 +18,11 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "typescript": "^6.0.0"
+  },
+  "overrides": {
+    "astro": {
+      "sharp": "^0.35.0",
+      "esbuild": "^0.28.1"
+    }
   }
 }
