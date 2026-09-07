@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.2](https://github.com/mlorentedev/garsync/compare/v0.2.1...v0.2.2) (2026-09-07)
+
+
+### Bug Fixes
+
+* **deps:** bump transitive sharp and esbuild to clear dependabot alerts (SEC-005) ([#63](https://github.com/mlorentedev/garsync/issues/63)) ([0e034cc](https://github.com/mlorentedev/garsync/commit/0e034cc0f750f941976f24a3e43f3a3531b311c7))
+
+
+### Documentation
+
+* **lessons:** capture dependabot group and npm scoped-override lessons from SEC-005 ([e4714e2](https://github.com/mlorentedev/garsync/commit/e4714e2496d189be045157fecb1ed76010125674))
+
 ## [0.2.1](https://github.com/mlorentedev/garsync/compare/v0.2.0...v0.2.1) (2026-09-07)
 
 
