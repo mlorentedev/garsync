@@ -1,0 +1,6 @@
+# Lesson-020: npm scoped overrides apply to the whole dependency subtree, not just the named package
+
+- **Context:** SEC-005 paydown (PR #63, 2026-09-07): dependabot flagged transitive `sharp < 0.35.0` (high) and `esbuild >= 0.27.3, < 0.28.1` (low) in `frontend/package-lock.json`. Both are capped by astro's ranges (`sharp: ^0.34.0`, `esbuild: ^0.27.3`), so `npm update` cannot cross them; the fix is scoped overrides.
+- **Finding:** Writing `overrides: {"astro": {"sharp": "^0.35.0", "esbuild": "^0.28.1"}}` looks like it only retargets astro's direct deps — but npm applies a scoped override to the named package's **entire subtree**. `vite` is a dependency of astro, so vite resolved esbuild 0.28.2 despite declaring `^0.25.0` (the nested `vite/node_modules/esbuild` copy disappeared from the lockfile). The build and `astro check` still passed, so the override was kept — but the blast radius was wider than the syntax suggests.
+- **Pattern:** After adding a scoped override, diff the lockfile for the affected packages' *whole subtree* (`packages/node_modules/<pkg>` and nested copies) to see who actually moved, and run the real build + typecheck as validation. Verify overrides by resolved version, not by the lockfile entry you expected to change.
+- **Refs:** SEC-005 (mlorentedev/garsync#64), PR #63 merged as `0e034cc`.
