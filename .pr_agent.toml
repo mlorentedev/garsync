@@ -1,0 +1,140 @@
+# PR-Agent (The-PR-Agent/pr-agent, MIT) on NaN cluster inference.
+#
+# Why this repo needs a second reviewer, measured rather than assumed (2026-09-06, every
+# non-bot PR in the repository's history):
+#
+#   #4, #5    no CodeRabbit output at all (predate the install)
+#   #44, #53  one real review (`## Walkthrough`), then `Review limit reached` on the
+#             re-review of the next push
+#
+# CodeRabbit publishes a check-run here and it reports `pass` with the summary "Review
+# rate limited" when it declined (#53), so a declined review is not merely invisible in
+# CI, it is green in CI. master carries no branch protection and no required checks.
+# That is the queue this removes: a reviewer whose capacity is ours rather than a
+# vendor's, guarded by a step that goes red when no review was published.
+#
+# Ported from mlorentedev/dotfiles (`.pr_agent.toml`, TOOL-013 #786) via the
+# mlorentedev/kubelab adaptation (TOOL-021 #1140) and the mlorentedev/ts-bridge port
+# (#315). Numbers, paths and the ignore list below are re-derived for this repo; the
+# model-chain reasoning is inherited and cited by issue so it can be checked at source.
+
+[config]
+# `openai/` selects LiteLLM's OpenAI-compatible transport; the endpoint is NaN's, set
+# as OPENAI__API_BASE in the workflow. Nothing here talks to OpenAI.
+#
+# mimo-v2.5 leads and deepseek-v4-flash follows because the order is the only one that
+# can fail loudly. deepseek's characteristic failure is a 200 with an empty body (it
+# spends the output budget on the reasoning chain and never writes an answer) which
+# raises no exception, so LiteLLM never consults a fallback behind it. kubelab measured
+# that shape on run 32440498259 (#1205): step `success` after 4m15s, no RateLimitError,
+# the second model never attempted. mimo fails by saturation (429), which DOES raise.
+#
+# This is not a quality ranking. harness/reviewer-pool.json says of mimo, in its own
+# words, that no ranking against deepseek was established; both are reasoning-class by
+# profile (1M context, mandatory chain) and both are admitted there, which is the line
+# this file draws. The excluded models stay excluded by name: qwen3.6/gemma4 are the
+# latency tier, and a reviewer that PASSes cheaply converts a gate into a green
+# checkmark. tests/pr-agent-config.bats holds that at dotfiles.
+model = "openai/mimo-v2.5"
+
+# ONE fallback, and lane separation is why it is deepseek rather than a sibling of the
+# primary. NaN's limit is PER MODEL (kubelab #1107/#1203: 8 concurrent to deepseek
+# gives 5x200 + 3x429 while mimo answers 200 during the same saturation), so the second
+# bucket is a real fallback and not a re-name of the same wall. It does share a bucket
+# with this repo's adversarial-review pool, where deepseek is a member; the trade was
+# made at dotfiles #1149 in the same direction (CI yields to the gate, because the gate
+# blocks and CI review advises), and it is recorded here rather than rediscovered.
+fallback_models = ["openai/deepseek-v4-flash"]
+
+# `model_weak` deliberately absent. Upstream defaults it to a flash tier for
+# descriptions and commit summaries; `auto_describe` is off below so it would do
+# nothing, and the model it names is the one the pool rejects here. Importing a
+# documented tension for zero behaviour is the worst of both.
+
+# NaN ids are not in LiteLLM's registry, so the budget must be stated or LiteLLM
+# assumes a small default and truncates the diff silently.
+custom_model_max_tokens = 200000
+max_model_tokens = 200000
+
+response_language = "en-US"
+
+# The tracked context files here are the root `CLAUDE.md` (stack, key paths, conventions)
+# and `README.md`. There is no `AGENTS.md` in this repository (checked 2026-09-06) and
+# `.claude/` is gitignored, so naming either would hand the reviewer a source it cannot
+# read: a rule that looks like rigour and asserts nothing.
+repo_context_files = ["CLAUDE.md", "README.md"]
+
+[pr_reviewer]
+require_score_review = false
+require_tests_review = true
+require_security_review = true
+persistent_comment = true
+final_update_message = false
+
+# No "compliance sweep" preamble: asked for on every review and delivered once in
+# sixteen at dotfiles (#1072, recommendation was deletion). An instruction ignored 94 %
+# of the time is a comment, not a control.
+extra_instructions = """
+This repository already runs ruff (check + format), mypy --strict on src/garsync/,
+pytest, `astro check` and the Astro production build in CI, plus GitGuardian on every
+PR. Do not restate what those report; repeating it is noise that trains the reader to
+skim.
+
+Spend the budget on what static analysis cannot see:
+
+- a test that passes vacuously. This repo has named classes of it: auth config is read
+  inside `create_app()`, so a test that sets env vars AFTER building the app tests stale
+  config (docs/lessons L-005); and the session cookie is `Secure`, so an httpx client
+  pointed at `http://` never sends it back and a 401 looks like an auth bug (L-006).
+- a guard that cannot fail the way its comment claims, or that perturbs the thing it
+  measures.
+- Garmin API shape drift: fields that arrive as list-or-dict, or are null for whole
+  categories (L-001, L-002). A field read without `.get()` and a default, or a UI
+  component built on a field nobody verified in the database, is a real finding.
+- timezone-naive datetimes (the ruff DTZ rules exist here because it shipped; see the
+  ruff 0.16 lesson in docs/lessons) and `import datetime` shadowed by `from datetime import datetime`
+  (L-007).
+- cross-file consequences a single-hunk reader misses: a contract repeated in
+  README.md, docs/deploy-self-hosted.md, docs/adr/ and the Astro `src/lib/api.ts`
+  wrappers where only one of them is edited, or an endpoint the frontend calls that
+  the API no longer serves.
+- anything that puts a credential in a transcript, a log line, an argv or the process
+  table, including in documentation examples. secrets.env.enc is SOPS-encrypted and
+  must stay that way; a plaintext `.env` or a decrypted dump in a Makefile recipe's
+  stdout is a finding.
+
+Grade each finding REAL, THEORETICAL or SPECULATIVE and say which. REAL needs a concrete
+trace: file and line, failing input, or a command and its output. Do not flag an import
+or dependency as missing when CI installs from poetry.lock / package-lock.json and
+tests pass; trust the manifests. Write in English. Conventional Commits and no AI
+attribution are enforced here, so do not propose commit messages that carry either.
+"""
+
+[pr_code_suggestions]
+# Present on purpose. Omitting this block is how upstream shipped the tool with its
+# stated function disabled: the default `dual_publishing_score_threshold` is -1, which
+# never publishes inline (dotfiles measured 2 bot comments and 0 inline across three
+# PRs before noticing). 7 is upstream's own medium boundary.
+dual_publishing_score_threshold = 7
+suggestions_score_threshold = 5
+publish_output_no_suggestions = false
+
+[ignore]
+# Applied BEFORE the model call. This list is about spend and signal, and one item is
+# about leakage:
+#   - the three lockfiles are thousands of lines of resolved URLs a human already
+#     reviewed in the PR that bumped them, and lockfiles are excluded from the review
+#     cap by policy;
+#   - build output and the SQLite data directory are machine artefacts;
+#   - secrets.env.enc is ciphertext; there is nothing for a reviewer to read in it and
+#     no reason to ship it to an inference endpoint.
+glob = [
+  "poetry.lock",
+  "frontend/package-lock.json",
+  "docs-site/package-lock.json",
+  "frontend/dist/**",
+  "docs-site/dist/**",
+  "data/**",
+  "secrets.env.enc",
+  "**/*.log",
+]
