@@ -43,3 +43,6 @@ frontend/.astro/
 htmlcov/
 .pytest_cache/
 coverage.out
+
+# Agent session state (pi subagent artifacts)
+.pi/
