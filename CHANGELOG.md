@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/mlorentedev/garsync/compare/v0.2.0...v0.2.1) (2026-09-07)
+
+
+### Documentation
+
+* apply /insights findings (2026-09-05) ([#53](https://github.com/mlorentedev/garsync/issues/53)) ([50e957a](https://github.com/mlorentedev/garsync/commit/50e957ab0c25d4b44a80bf194d0c72770d537034))
+* split lessons into one file per lesson under docs/lessons/ ([#58](https://github.com/mlorentedev/garsync/issues/58)) ([946d481](https://github.com/mlorentedev/garsync/commit/946d481da6ec44696e00cd4e24e40b1c011bafb4))
+
 ## [0.2.0](https://github.com/mlorentedev/garsync/compare/v0.1.5...v0.2.0) (2026-09-06)
 
 
