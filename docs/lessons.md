@@ -1,13 +1,13 @@
 ---
-id: "garsync-lessons"
+id: garsync-lessons
 type: lesson
 status: active
-tags: [garsync, lessons]
 created: "2026-02-28"
 owner: manu
+tags: [garsync, lessons, pointer]
 ---
 
-# GarSync: Lessons Learned
+# Lessons Learned
 
 ## L-001: Garmin API response format inconsistencies
 
