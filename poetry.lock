@@ -610,14 +610,14 @@ standard-no-fastapi-cloud-cli = ["email-validator (>=2.0.0)", "fastapi-cli[stand
 
 [[package]]
 name = "garminconnect"
-version = "0.3.11"
+version = "0.3.15"
 description = "Python 3 API wrapper for Garmin Connect"
 optional = false
 python-versions = ">=3.12"
 groups = ["main"]
 files = [
-    {file = "garminconnect-0.3.11-py3-none-any.whl", hash = "sha256:58568f339b00cc47d01b2dee347a82c491a45996bb13757a050df03b7049f945"},
-    {file = "garminconnect-0.3.11.tar.gz", hash = "sha256:506198a65351df4ae0ce82b8c317eadf012c238c542d6a557387598e4d9a4044"},
+    {file = "garminconnect-0.3.15-py3-none-any.whl", hash = "sha256:aa57cb5635eb2ad8f2ba9899043b644125289fd7169cd29d74b3207df4246c0d"},
+    {file = "garminconnect-0.3.15.tar.gz", hash = "sha256:015b05a25a45e4a7883a5394ecf60af01987a04ee411d331ca4121daf32f5cba"},
 ]
 
 [package.dependencies]
@@ -1556,14 +1556,14 @@ xmp = ["defusedxml"]
 
 [[package]]
 name = "plotly"
-version = "7.0.0"
+version = "7.1.0"
 description = "An open-source interactive data visualization library for Python"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "plotly-7.0.0-py3-none-any.whl", hash = "sha256:78cbf7bd06d1b05bb3b8ec1b709864695229b55151b6f7530fbf55517ead6fdd"},
-    {file = "plotly-7.0.0.tar.gz", hash = "sha256:08b21f1244a97e7a1a699833c4bb2678475aa108b3f1989886ed0b038ebfd849"},
+    {file = "plotly-7.1.0-py3-none-any.whl", hash = "sha256:dbb7fa18afce40d0a8e80d1bf162eceb3faa0ce5a77fe741ad09a74cf78f53f3"},
+    {file = "plotly-7.1.0.tar.gz", hash = "sha256:f860166a4a3d78c69cb1f4a15f28a5c8283eade98a282a698f3bb853a449ace5"},
 ]
 
 [package.dependencies]
@@ -1571,11 +1571,11 @@ narwhals = ">=1.15.1"
 packaging = "*"
 
 [package.extras]
-dev = ["anywidget", "build", "colorcet", "fiona (<=1.9.6) ; python_version <= \"3.8\"", "geopandas", "inflect", "jupyter-builder", "jupyterlab", "kaleido (>=1.3.0)", "numpy (>=1.22)", "orjson", "pandas", "pdfrw", "pillow", "polars[timezone]", "pyarrow", "pytest", "pytz", "requests", "ruff (==0.11.12)", "scikit-image", "scipy", "statsmodels", "vaex ; python_version <= \"3.9\"", "xarray"]
+dev = ["anywidget", "build", "colorcet", "fiona (<=1.9.6) ; python_version <= \"3.8\"", "geopandas", "inflect", "jupyter-builder", "jupyterlab", "kaleido (>=1.3.0)", "numpy (>=1.22)", "orjson", "pandas", "pdfrw", "pillow", "polars[timezone]", "pyarrow", "pytest", "pytz", "requests", "ruff (==0.11.12)", "scikit-image", "scipy", "sphinx-gallery", "statsmodels", "vaex ; python_version <= \"3.9\"", "xarray"]
 dev-build = ["build", "jupyter-builder", "pytest", "requests", "ruff (==0.11.12)"]
 dev-codegen = ["inflect", "pytest", "requests", "ruff (==0.11.12)"]
 dev-core = ["pytest", "requests", "ruff (==0.11.12)"]
-dev-optional = ["anywidget", "build", "colorcet", "fiona (<=1.9.6) ; python_version <= \"3.8\"", "geopandas", "inflect", "jupyter-builder", "jupyterlab", "kaleido (>=1.3.0)", "numpy (>=1.22)", "orjson", "pandas", "pdfrw", "pillow", "polars[timezone]", "pyarrow", "pytest", "pytz", "requests", "ruff (==0.11.12)", "scikit-image", "scipy", "statsmodels", "vaex ; python_version <= \"3.9\"", "xarray"]
+dev-optional = ["anywidget", "build", "colorcet", "fiona (<=1.9.6) ; python_version <= \"3.8\"", "geopandas", "inflect", "jupyter-builder", "jupyterlab", "kaleido (>=1.3.0)", "numpy (>=1.22)", "orjson", "pandas", "pdfrw", "pillow", "polars[timezone]", "pyarrow", "pytest", "pytz", "requests", "ruff (==0.11.12)", "scikit-image", "scipy", "sphinx-gallery", "statsmodels", "vaex ; python_version <= \"3.9\"", "xarray"]
 dev-pandas1 = ["numpy (>=1,<2)", "pandas (>=1,<2)", "setuptools (<82)"]
 dev-pandas2 = ["pandas (>=2,<3)"]
 dev-pandas3 = ["pandas (>=3) ; python_version >= \"3.11\""]
@@ -2251,30 +2251,30 @@ files = [
 
 [[package]]
 name = "ruff"
-version = "0.16.5"
+version = "0.16.8"
 description = "An extremely fast Python linter and code formatter, written in Rust."
 optional = false
 python-versions = ">=3.7"
 groups = ["dev"]
 files = [
-    {file = "ruff-0.16.5-py3-none-linux_armv6l.whl", hash = "sha256:12e5f673e774c35fbb62f288809c7653b73445f8ecec6b6063fd6ea3521aa14b"},
-    {file = "ruff-0.16.5-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:eda58a5802de40e7ed5b32b64e0b32539338cc6fcd2c78f61e3ad6a0d79f51c3"},
-    {file = "ruff-0.16.5-py3-none-macosx_11_0_arm64.whl", hash = "sha256:c5ae9a7b9a8875131f40f8fe967cc86abf899779efd663cb7ce3d572d01da7eb"},
-    {file = "ruff-0.16.5-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:7b719b0a1f4d59710d283ab2965f621684a108a9e41da622e3b23f0326cd0025"},
-    {file = "ruff-0.16.5-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:2298f2780ed1be0c5cb1361e32ab7b1467f3cce7dabe101d2210a314f2fe42e9"},
-    {file = "ruff-0.16.5-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:258f29035a2dd021e7861e631b227a5b3f14e50c1184c9a6a122c5f4576154d7"},
-    {file = "ruff-0.16.5-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:b9a4f0432966834019c74d1b7e5c51224305d7713f3d7faf3e7451f1a3be3cde"},
-    {file = "ruff-0.16.5-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:b5eb3a8c3d0ade9cea42b591fd530368e8798380e30e0a308b85a5cf718f09ea"},
-    {file = "ruff-0.16.5-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ef0f69e191a13a3c9816f63163c88790cb12cd157bbbb384e9c44745702ab105"},
-    {file = "ruff-0.16.5-py3-none-manylinux_2_31_riscv64.whl", hash = "sha256:0eeab41fbea2c42f98dfb9822cdccda9d24ba38d49f6dc945b5c236d48f0ef29"},
-    {file = "ruff-0.16.5-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:f0768e9df4300713fff30733c87575f68b6f1d8de41184e505b7fdd9c0c95eaf"},
-    {file = "ruff-0.16.5-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:95cc70cdc7aa80c338de356279d2adbeb2de0f520b9ecd8aba75b94e95e02f91"},
-    {file = "ruff-0.16.5-py3-none-musllinux_1_2_i686.whl", hash = "sha256:d185c8398ded1bfd91c0c2cb258346307571eccc473a8490af8c3977399c384a"},
-    {file = "ruff-0.16.5-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:fb8e3a3c4c6a784150a7ced53b015f4b253fc2bf97a610886419ead64b4756ef"},
-    {file = "ruff-0.16.5-py3-none-win32.whl", hash = "sha256:288b0a5f080492fe5635db849f9e2e84aa3cce7b7f0e955997d416c507c76a26"},
-    {file = "ruff-0.16.5-py3-none-win_amd64.whl", hash = "sha256:ddc6385fb2137f616357ca03d6c74f4be987f80fed4008566b754f6032b8546f"},
-    {file = "ruff-0.16.5-py3-none-win_arm64.whl", hash = "sha256:a64abe90968719b851bb7cedffaa8753fbdbdadab483089682db623f3edc587e"},
-    {file = "ruff-0.16.5.tar.gz", hash = "sha256:1b88500f9ffbcab3dedb0082c9f9492e91ec3d618aac1236a3e0189938f7040b"},
+    {file = "ruff-0.16.8-py3-none-linux_armv6l.whl", hash = "sha256:6ffbd6d87383c1edf5f6fa890f10200950240d7c1a16052a19a09d3a2307dd38"},
+    {file = "ruff-0.16.8-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:42ed6b878ed61e3acca92f2730a17acff39286944ea82398544696366a6f925e"},
+    {file = "ruff-0.16.8-py3-none-macosx_11_0_arm64.whl", hash = "sha256:7ea781c7f2afba8c6a505ea0fb3f994020249e0c450635f5381286fea6b46170"},
+    {file = "ruff-0.16.8-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8efeae3bbe414a5efefda11a792dfb51ef90ac48d50c4830de2f644caf3e8659"},
+    {file = "ruff-0.16.8-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:3a79b795469fef7fc6e908b218eed2eb17332afd85031db6480dc864560e69b2"},
+    {file = "ruff-0.16.8-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:3fdc5563cdc50555e6fba39322850860e9267c1b3d12c26a74729d8604c3c812"},
+    {file = "ruff-0.16.8-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:34508983c70665578dab88f5223d8e6228307e1135398ca8bfc8b7e9501e282b"},
+    {file = "ruff-0.16.8-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:644bb578569e0ffc575741232bd385dacdd6fbe123f1a729e7a225f54aa3957f"},
+    {file = "ruff-0.16.8-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:15e7d226246961db9235098333caa13063906d3851136b84c2900b82f5daa1df"},
+    {file = "ruff-0.16.8-py3-none-manylinux_2_31_riscv64.whl", hash = "sha256:a2bf6bc3e9ebdd4449abc6f06cf64b98051a2c61cf94d2fe9596518c881f1a1e"},
+    {file = "ruff-0.16.8-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:6ca111ba0849539165e9e59d2b442542f3c1e8060ebbdea82494f1ffbccb1e1f"},
+    {file = "ruff-0.16.8-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:359a1e5b495448ee1e91018064382ebc86f90e8aac2fed222c7d0e4e8df85fd2"},
+    {file = "ruff-0.16.8-py3-none-musllinux_1_2_i686.whl", hash = "sha256:59e8f5681349474110b24d62e93cfda6593f5fa3473446ca3705200cac1a08b9"},
+    {file = "ruff-0.16.8-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:efa3e7a16d1baaa79957888dfdf8be9ef2e44db81cb032af06d76632ab59e773"},
+    {file = "ruff-0.16.8-py3-none-win32.whl", hash = "sha256:55793ba85c69921e89be061426d91a78652d6e50317c962240922747a4eb713f"},
+    {file = "ruff-0.16.8-py3-none-win_amd64.whl", hash = "sha256:a6b85621fd3c81e31fc5f5add09c9c078b430db3595ca632efafdec9e64ebfaa"},
+    {file = "ruff-0.16.8-py3-none-win_arm64.whl", hash = "sha256:d075e820af612102ce217f07cc93e69f9490b10ec13ea85fa87bd03d996cef8a"},
+    {file = "ruff-0.16.8.tar.gz", hash = "sha256:9247bf92b5f04d825c8639a4fe423ec2e4222acd9222e58412b0dab7e442798b"},
 ]
 
 [[package]]
@@ -2322,14 +2322,14 @@ full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart 
 
 [[package]]
 name = "streamlit"
-version = "1.63.0"
+version = "1.64.0"
 description = "A faster way to build and share data apps"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "streamlit-1.63.0-py3-none-any.whl", hash = "sha256:c24fd38170543ffb749321c801627aaa09068219539d7b81ef77633ea2408b36"},
-    {file = "streamlit-1.63.0.tar.gz", hash = "sha256:1ea0121884d5606cf055b8c42600528daf07d0401eaabfc8e22f00e235ea53eb"},
+    {file = "streamlit-1.64.0-py3-none-any.whl", hash = "sha256:4daf63aa9eaa5452d0edc64a5bdb0c4ad25580fe3c62c270455f3c43e9db5098"},
+    {file = "streamlit-1.64.0.tar.gz", hash = "sha256:5c3f9a9dec13b5c5197a9c764ebf1a9d77f9e19c1b4af008779cb45c368961a3"},
 ]
 
 [package.dependencies]
@@ -2481,14 +2481,14 @@ zstd = ["backports-zstd (>=1.0.0) ; python_version < \"3.14\""]
 
 [[package]]
 name = "uvicorn"
-version = "0.52.4"
+version = "0.53.0"
 description = "The lightning-fast ASGI server."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "uvicorn-0.52.4-py3-none-any.whl", hash = "sha256:f86e41a149d7d05a9969337e3946a9c171c06a5d42680896daaba624aeac8da1"},
-    {file = "uvicorn-0.52.4.tar.gz", hash = "sha256:73acfee47a0b133c5de13d219492d62d8a31e935f4fe6e41a232451a15379f86"},
+    {file = "uvicorn-0.53.0-py3-none-any.whl", hash = "sha256:e8dca71ec86dce5f04e333f0d56cdedf942446e6643b9cea1af0d6d3a02cb03e"},
+    {file = "uvicorn-0.53.0.tar.gz", hash = "sha256:a9356f0cb89b3b8621529c5d5eebd69bfe154f4c3f68b4cf2de47e45fa855c2e"},
 ]
 
 [package.dependencies]
@@ -2809,4 +2809,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "7d4fd85823fc14ca032b74a26e100c102853d2a1bd69545ea472b3865e2339c8"
+content-hash = "1651075a29b4400e56705297e85fa8d4fbaeb07205463b884ef6de119f532aab"
