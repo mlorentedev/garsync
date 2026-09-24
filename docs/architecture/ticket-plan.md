@@ -59,11 +59,11 @@ decisions in `scope-interview.md`, and two PRs are red and unreviewed.
 | **#51 SEC-004** API-key-only dashboard access | **Decide and close.** ADR-010 answers it: the API-key surface becomes a single scoped read-only agent token, and the dashboard always requires a session |
 | **#57 CHORE-002** unify Makefile targets | **Absorbed** into CI-002 (one gate surface, used by both CI and humans) |
 | **#59 CI-001** harden workflow checkouts + PR-Agent guard | **Absorbed** into CI-002 |
-| **#62 CHORE-003** major upgrades (tailwind v4, TS v7) | **Stays, deprioritised** — a dependency project, not a v2 blocker |
-| **#64 SEC-005** astro ≥ 7.1.0 paydown (3 high alerts) | **Stays, and it contradicts `.github/dependabot.yml`**, which ignores astro majors. Resolve that contradiction first (SEC-006), then either the alert paydown or the ignore rule is the bug |
-| **PR #66** astro 5 → 7.2.8 | **Red** (`frontend` fails) and unreviewed (CodeRabbit skips bot PRs, PR-Agent has no key). It depends on the same astro decision |
-| **PR #70** npm group, 2 updates | **Red** (`frontend` fails), 10 days old, unreviewed. Fix or close |
-| **PR #75** devalue 5.9.2 → 5.9.4 | Clean and green, but **unreviewed**. A notice that no review ran is not a review |
+| **#64 SEC-005** astro ≥ 7.1.0 paydown | **Closed 2026-09-25 with [ADR-014](../adr/adr-014-dependency-alert-policy.md).** Its “alerts list empty” criterion is re-scoped to *no alert whose vulnerable code is reachable in the deployed artifact*: the one library-level risk behind the critical alert (`sharp`) is patched in the lock (0.35.4), astro is build-time only here, and the framework-level fixes are the migration in CHORE-003 (#62) |
+| **#62 CHORE-003** major upgrades (tailwind v4, TS v7) | **Stays, promoted to P1 (2026-09-25).** It absorbs the astro 7 half of SEC-005 — astro 7 needs the Tailwind v4 move (`@astrojs/tailwind` was replaced by `@tailwindcss/vite`, and v6 peers only astro 3–5), so the two tickets were one migration all along. It is now the only path to the framework-level fixes among the ten open alerts |
+| **PR #66** astro 5 → 7.2.8 | **Closed 2026-09-25 as structurally unmergeable**: it carries one half of the migration and `npm ci` fails with ERESOLVE by construction |
+| **PR #70** npm group, 2 updates | **Closed 2026-09-25** for the same reason: tailwindcss 3 → 4 alone leaves `@astrojs/tailwind@6` unsatisfiable. Folded into CHORE-003 (#62) |
+| **PR #75** devalue 5.9.2 → 5.9.4 | **Merged** (#100). It was unreviewed when it landed — a notice that no review ran is not a review |
 
 ## 2. Block A — hygiene and SSOT (no spec required)
 
@@ -74,7 +74,7 @@ decisions in `scope-interview.md`, and two PRs are red and unreviewed.
 | **CI-002** | One gate surface | `permissions:` and `concurrency:` on every workflow; `make check` becomes what CI runs so the two cannot diverge; **coverage measured and then ratcheted** (fail if it drops >2 points from the recorded baseline — no invented 80%); test markers (`unit`/`integration`/`e2e`) with `-m "not e2e"`; `docs-site` checked on PRs; **and the `frontend-check` target's fail-open repaired** — it printed `0 errors` and exited 0 with a failing `astro check` behind it | Publishing coverage badges before the number is real; and the two items split out below, both of which are bigger than a config line | config-only |
 | **CHORE-006** | Dead dependencies | Drop `pandas`, `streamlit`, `plotly` — declared, zero references in `src/` or `tests/` | Touching anything else in `pyproject.toml` | none |
 | **DOC-001** | Close the SEC-001 spec properly | Adversarial review of the merged-but-unarchived spec, then `dotf spec archive`; either way the archive gate becomes the demonstrated habit before SUB-001 | Re-opening SEC-001's decisions | doc + review |
-| **SEC-006** | Resolve the astro contradiction | Decide: pay the alert down (SEC-005) or keep the major-version ignore. One of the two is wrong, and today both are configured | Any other dependency policy | none |
+| **SEC-006** | Resolve the astro contradiction | **Resolved 2026-09-25 → [ADR-014](../adr/adr-014-dependency-alert-policy.md).** The major-version ignore stays, *with its three required statements recorded in `dependabot.yml`* (why it cannot be taken, what is exposed meanwhile, what reopens it); the reachable library risk (`sharp`) is patched in the lock; the framework-level fixes move to CHORE-003 (#62), promoted to P1. #64 closed with that reasoning, #66 and #70 closed as structurally unmergeable | Any other dependency policy | none |
 
 ### Two items split out of CI-002 when it was implemented (2026-09-25)
 
