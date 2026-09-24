@@ -1,20 +1,20 @@
 # Gitleaks configuration — https://github.com/gitleaks/gitleaks#configuration
 #
-# The default ruleset is kept in full; this file only narrows it where a path in
-# THIS repository is a structural false positive.
+# The default ruleset only, with no path allowlist. That is deliberate and was
+# measured, not assumed: an earlier revision of this file allowlisted
+# `docs/lessons/**.md` and `secrets.env.enc` "because they quote credential shapes
+# or hold ciphertext", and removing both still yields zero findings across
+# `pre-commit run gitleaks --all-files` (2026-09-25).
+#
+# The reason matters more than the tidiness: a global path allowlist excludes a
+# file from secret detection entirely, so the next live token staged into a lesson
+# — the exact place an agent is most likely to paste one — would ship unread. A
+# suppression that is not needed is not a safe default; it is a hole with a comment.
+# If a genuine false positive appears, allowlist that specific pattern or example.
+#
+# CodeRabbit review, PR #103 (2026-09-25): reported the lesson-path allowlist as a
+# Major finding. Verified by consequence — removed, re-ran, no findings — and the
+# finding was correct. See the PR's `## Review triage`.
 
 [extend]
 useDefault = true
-
-[allowlist]
-  paths = [
-    # SOPS + age ciphertext. The values are encrypted to an age recipient and the
-    # data key rotates on every edit, so the whole file changes each commit:
-    # scanning it is slow and yields nothing but high-entropy false positives.
-    # The plaintext never enters this file — `sops -d` writes it to a temp file
-    # that `.gitignore` covers — so there is nothing here to leak in the first place.
-    '''^secrets\.env\.enc$''',
-    # The committed test fixtures and the lesson corpus quote *shapes* of tokens
-    # (`X-API-KEY: test-key`, redacted examples) rather than live credentials.
-    '''^docs/lessons/.*\.md$''',
-  ]
