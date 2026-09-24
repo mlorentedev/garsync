@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.3](https://github.com/mlorentedev/garsync/compare/v0.2.2...v0.2.3) (2026-09-24)
+
+
+### Bug Fixes
+
+* **auth:** reject non-ASCII credentials, and archive the SEC-001 spec ([#111](https://github.com/mlorentedev/garsync/issues/111)) ([2c87539](https://github.com/mlorentedev/garsync/commit/2c8753975233d73bb69a636fbcb0ef608f4fb511))
+* **guards:** land the two review findings whose PR merged before they did ([#113](https://github.com/mlorentedev/garsync/issues/113)) ([a9e883c](https://github.com/mlorentedev/garsync/commit/a9e883c419335ec940d5f6a9d23dec6c6bb524d0))
+
+
+### Documentation
+
+* **adr:** triage dependency alerts by reachability, and make an ignore state its trigger ([#110](https://github.com/mlorentedev/garsync/issues/110)) ([b6d65f4](https://github.com/mlorentedev/garsync/commit/b6d65f44a7a27ced5e3d799d81703f72adfd62f4))
+* **architecture:** v2 target architecture, ADRs 007-013 and the scope register ([#99](https://github.com/mlorentedev/garsync/issues/99)) ([2c63905](https://github.com/mlorentedev/garsync/commit/2c6390543b506e037e1ab96b6c8848cb4e5a1273))
+* make the repo's SSOTs singular (license, agent file, lessons) ([#102](https://github.com/mlorentedev/garsync/issues/102)) ([2ecc593](https://github.com/mlorentedev/garsync/commit/2ecc593337c082ae2d6bcf31a4263e50cebe0d25))
+
 ## [0.2.2](https://github.com/mlorentedev/garsync/compare/v0.2.1...v0.2.2) (2026-09-07)
 
 
