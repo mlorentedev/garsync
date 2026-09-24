@@ -139,6 +139,12 @@ def create_app(conn: sqlite3.Connection | None = None) -> FastAPI:
         # specs/SEC-001 (2026-09-25) raised it as speculative; it is cheap to close, and an
         # oversized body counts as a failed attempt rather than a distinct status, so the
         # response is not an oracle for how the body was rejected.
+        #
+        # This cap holds only while nothing upstream has consumed the body: FastAPI does not
+        # parse one for a handler that declares no body parameter, and the auth middleware
+        # never reads it, so the request arrives unconsumed (verified: `_stream_consumed` is
+        # False at entry and the loop receives chunks). If a future middleware starts reading
+        # the body, the proxy's size limit is the remaining backstop.
         body = b""
         async for chunk in request.stream():
             body += chunk
