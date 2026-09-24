@@ -38,4 +38,4 @@ created: "2026-08-27"
 - [x] Lint passes (ruff)
 - [x] No unrelated changes in diff
 - [x] `verification.md` filled with evidence
-- [ ] PR opened referencing specs/SEC-001 and #39  ← awaiting commit approval (house commit policy: stage/commit needs owner sign-off)
+- [x] PR opened referencing specs/SEC-001 and #39 (PR #44, merged 2026-09-06)
