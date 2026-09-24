@@ -21,6 +21,8 @@ from garsync.db import (
 from garsync.models import DailyBiometrics, NormalizedActivity, SleepData
 from garsync.pipeline import activity_to_row, biometrics_to_row, sleep_to_row
 
+pytestmark = pytest.mark.unit
+
 runner = CliRunner()
 
 

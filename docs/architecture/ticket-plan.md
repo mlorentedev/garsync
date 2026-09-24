@@ -71,10 +71,21 @@ decisions in `scope-interview.md`, and two PRs are red and unreviewed.
 |---|---|---|---|---|
 | **CHORE-004** | SSOT and drift | Add MIT `LICENSE` (the README already claims it); make `AGENTS.md` canonical and retire `GEMINI.md` (it points at `make test-backend`, which does not exist); mark ADR-005 `superseded` with a pointer to ADR-007/013; collapse `docs/lessons.md` + `docs/lessons/` into one SSOT with a generated index; fix the README's "scheduled incremental sync" claim (there is no scheduler); document the ADR 001–003 numbering gap | Rewriting ADRs 004–006 | doc-only |
 | **CHORE-005** | Local guards | `.pre-commit-config.yaml` (gitleaks, ruff, ruff-format, mypy, trailing-whitespace, end-of-file-fixer), `.editorconfig`, `.gitleaks.toml`; align with the sibling repos' sets | CI changes (CI-002) | config-only |
-| **CI-002** | One gate surface | `permissions:` and `concurrency:` on every workflow; `make check` becomes what CI runs so the two cannot diverge; **coverage measured and then ratcheted** (fail if it drops >2 points from the recorded baseline — no invented 80%); test markers (`unit`/`integration`/`e2e`) with `-m "not e2e"`; frontend lint + format; `docs-site` checked on PRs; the review-attestation gate ported or the registry deleted, because a registry nothing reads is worse than no registry | Publishing coverage badges before the number is real | config-only |
+| **CI-002** | One gate surface | `permissions:` and `concurrency:` on every workflow; `make check` becomes what CI runs so the two cannot diverge; **coverage measured and then ratcheted** (fail if it drops >2 points from the recorded baseline — no invented 80%); test markers (`unit`/`integration`/`e2e`) with `-m "not e2e"`; `docs-site` checked on PRs; **and the `frontend-check` target's fail-open repaired** — it printed `0 errors` and exited 0 with a failing `astro check` behind it | Publishing coverage badges before the number is real; and the two items split out below, both of which are bigger than a config line | config-only |
 | **CHORE-006** | Dead dependencies | Drop `pandas`, `streamlit`, `plotly` — declared, zero references in `src/` or `tests/` | Touching anything else in `pyproject.toml` | none |
 | **DOC-001** | Close the SEC-001 spec properly | Adversarial review of the merged-but-unarchived spec, then `dotf spec archive`; either way the archive gate becomes the demonstrated habit before SUB-001 | Re-opening SEC-001's decisions | doc + review |
 | **SEC-006** | Resolve the astro contradiction | Decide: pay the alert down (SEC-005) or keep the major-version ignore. One of the two is wrong, and today both are configured | Any other dependency policy | none |
+
+### Two items split out of CI-002 when it was implemented (2026-09-25)
+
+The row above stopped claiming two things that are not config-only:
+
+- **The review-attestation gate** is a 434-line script plus a 318-line `workflow_run` workflow in the
+  sibling implementation, and `harness/review-attestation.json` is already read by
+  `dotf pr triage-queue` — it is not a registry nothing reads, it is a registry missing its CI gate.
+  Filed as **CI-003 (#106)**.
+- **Frontend lint and format** needs `prettier` + `prettier-plugin-astro` (a new-dependency trigger) and
+  reforms the whole of `frontend/src/`. Filed as **CHORE-007 (#105)**.
 
 ## 3. Block B — substrate (spec required)
 

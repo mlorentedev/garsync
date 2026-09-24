@@ -23,11 +23,18 @@ on:
 
 permissions: {}   # authenticates via the github-script token input (BITACORA_PAT), not the default GITHUB_TOKEN
 
+# Keyed on the issue: two assignments of the same issue serialise, different
+# issues do not wait on each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
 jobs:
   in-progress:
     # Never resurrect a closed issue's status when it is (re)assigned.
     if: github.event.issue.state == 'open'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Move assigned issue to In Progress
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9

@@ -7,9 +7,14 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'GarSync',
-      social: {
-        github: 'https://github.com/mlorentedev/garsync',
-      },
+      // Starlight >= 0.33 wants an array of link items here; the object form was
+      // removed and build-time rejects it. This was the docs build's failure on
+      // master from 2026-08-11 to 2026-09-25 (CI-002), invisible because the
+      // workflow had no pull_request trigger: the red run only ever appeared
+      // AFTER the dependabot bump had already landed.
+      social: [
+        { icon: 'github', label: 'GitHub', href: 'https://github.com/mlorentedev/garsync' },
+      ],
       head: [
         {
           tag: 'meta',

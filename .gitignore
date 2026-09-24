@@ -37,6 +37,9 @@ data/
 frontend/node_modules/
 frontend/dist/
 frontend/.astro/
+docs-site/node_modules/
+docs-site/dist/
+docs-site/.astro/
 
 # Test/Coverage
 .coverage

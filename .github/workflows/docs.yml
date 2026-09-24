@@ -1,38 +1,60 @@
 name: Docs
 
+# The docs site is a second build with its own dependency tree, so it is checked
+# on pull requests that touch it — a broken docs build is a broken main branch
+# that the product's CI would never have noticed. Publishing stays a master-only
+# action.
 on:
   push:
     branches: [master]
     paths: ['docs-site/**']
+  pull_request:
+    paths: ['docs-site/**']
 
 permissions:
-  pages: write
-  id-token: write
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: docs-site/package-lock.json
+
       - name: Install dependencies
         run: npm ci
         working-directory: docs-site
+
       - name: Build docs site
         run: npm run build
         working-directory: docs-site
+
+      # Only a master build is published: a pull request proves the build works.
       - name: Upload artifact
+        if: github.event_name == 'push'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
           path: docs-site/dist
 
   deploy:
+    if: github.event_name == 'push'
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Scoped to this job, not the workflow: the build job above only reads.
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

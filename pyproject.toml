@@ -56,6 +56,15 @@ disallow_untyped_defs = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# Markers exist so a slower, end-to-end layer can be excluded from the default
+# run (`-m "not e2e"`) instead of being made faster by deleting it. `make smoke`
+# is today's e2e path and lives outside pytest; the marker is declared here so
+# a future pytest-driven e2e test has somewhere to land.
+markers = [
+    "unit: one layer — repository, schema, parsing, pure helpers",
+    "integration: more than one layer — CLI + database, or API + database over HTTP",
+    "e2e: the deployed shape end to end; excluded from the default run",
+]
 
 [tool.ruff]
 target-version = "py312"

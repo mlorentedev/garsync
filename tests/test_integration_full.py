@@ -14,6 +14,8 @@ from garsync.cli import app as cli_app
 from garsync.client import GarminClient
 from garsync.models import DailyBiometrics, NormalizedActivity, SleepData
 
+pytestmark = pytest.mark.integration
+
 runner = CliRunner()
 
 

@@ -5,6 +5,8 @@ from httpx import ASGITransport, AsyncClient
 
 from garsync.api.main import create_app
 
+pytestmark = pytest.mark.integration
+
 API_KEY = "test-api-key"
 PASSWORD = "test-access-password"
 

@@ -10,6 +10,15 @@ on:
   pull_request:
     types: [opened, reopened]
 
+# No repository-scope token is needed: the action authenticates with
+# secrets.BITACORA_PAT through its `github-token` input, so the default
+# GITHUB_TOKEN is denied everything.
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}
+  cancel-in-progress: false
+
 jobs:
   add-to-project:
     # Fork PRs run without repository secrets — BITACORA_PAT would be empty and the
@@ -19,6 +28,7 @@ jobs:
     # workflows triggered by Dependabot (GitHub security restriction).
     if: (github.event_name == 'issues' || github.event.pull_request.head.repo.fork == false) && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       # Pin a real release: actions/add-to-project@v1 does NOT resolve (no floating v1 tag).
       - uses: actions/add-to-project@5afcf98fcd03f1c2f92c3c83f58ae24323cc57fd # v2.0.0

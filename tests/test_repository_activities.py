@@ -3,7 +3,11 @@
 import json
 import sqlite3
 
+import pytest
+
 from garsync.db.repository import ActivityRepository
+
+pytestmark = pytest.mark.unit
 
 
 class TestActivityRepository:

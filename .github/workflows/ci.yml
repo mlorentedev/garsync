@@ -6,9 +6,23 @@ on:
   pull_request:
     branches: [master]
 
+# Least privilege at the workflow level: every job here reads the repository and
+# nothing else. Release and Pages need more, and they declare it on the job that
+# actually needs it (release.yml, docs.yml) — never on the whole workflow.
+permissions:
+  contents: read
+
+# One run per ref, and a push that supersedes an in-flight run cancels the
+# superseded one: the verdict that matters is always the newest commit's, and
+# letting stale runs queue behind it only delays the answer.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -32,22 +46,16 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction
 
-      - name: Lint
-        run: |
-          poetry run ruff check src/ tests/
-          poetry run ruff format --check src/ tests/
-
-      - name: Type check
-        run: poetry run mypy --strict src/garsync/
-
-      - name: Tests
-        run: poetry run pytest
+      # `make check-backend` (lint + type + the coverage ratchet) is the single
+      # definition of the backend gate. This workflow deliberately does not
+      # restate the individual commands: a gate written twice is a gate that will
+      # disagree with itself, and the copy in CI is the one nobody notices drifting.
+      - name: Backend gate
+        run: make check-backend
 
   frontend:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -59,9 +67,7 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        working-directory: frontend
 
-      - name: Type check
-        run: npx astro check
-
-      - name: Build
-        run: npm run build
+      - name: Frontend gate
+        run: make frontend-check
