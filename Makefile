@@ -198,4 +198,3 @@ clean: stop
 	@rm -rf frontend/dist/ .pytest_cache/ .mypy_cache/ .ruff_cache/
 	@rm -f .env.tmp .smoke.pid
 	@echo "✓ Workspace cleaned"
-

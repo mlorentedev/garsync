@@ -64,7 +64,7 @@
         const isPositive = trend > 0;
         // For some metrics (like RHR or Stress), positive is bad (red)
         const isGood = (label.includes("Resting HR") || label.includes("Stress")) ? !isPositive : isPositive;
-        
+
         trendEl.className = `text-[10px] font-bold px-1.5 py-0.5 rounded ${
           isGood ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"
         }`;
@@ -108,9 +108,9 @@
 
       const [current, previous] = await Promise.all([
         api.statsSummary({ start_date: range.start, end_date: range.end }),
-        api.statsSummary({ 
-          start_date: prevStartDate.toISOString().split("T")[0], 
-          end_date: prevEndDate.toISOString().split("T")[0] 
+        api.statsSummary({
+          start_date: prevStartDate.toISOString().split("T")[0],
+          end_date: prevEndDate.toISOString().split("T")[0]
         }),
       ]);
 
@@ -145,10 +145,10 @@
           calcTrend(current.total_calories, previous.total_calories)
         ),
         createKpiCard(
-          "border-t-rose-500", 
-          "Resting HR", 
-          current.avg_resting_heart_rate ? `${Math.round(current.avg_resting_heart_rate)}` : "--", 
-          "text-white", 
+          "border-t-rose-500",
+          "Resting HR",
+          current.avg_resting_heart_rate ? `${Math.round(current.avg_resting_heart_rate)}` : "--",
+          "text-white",
           "bpm avg",
           calcTrend(current.avg_resting_heart_rate, previous.avg_resting_heart_rate)
         ),
