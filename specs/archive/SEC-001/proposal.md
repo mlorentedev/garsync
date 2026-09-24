@@ -1,7 +1,7 @@
 ---
 id: "SEC-001"
 type: spec
-status: implementing
+status: archived
 created: "2026-08-27"
 issue: "mlorentedev/garsync#39"
 tags: [spec, proposal]
@@ -70,3 +70,5 @@ GarSync will be deployed publicly on NaN Cloud Apps (DEPLOY-001): one public HTT
 - Secrets hardening (session 2026-08-27): dedicated age identity `~/.config/age/garsync.txt`, file re-keyed via `sops updatekeys`, master ecosystem key can no longer decrypt this repo
 - Related: SYNC-001 (#37) scheduler, DEPLOY-001 (#38) NaN deploy runbook
 - Vault: `00_meta/patterns/pattern-nan-cloud-apps.md` (no platform auth for Apps → app-level gate mandatory)
+
+<!-- archived 2026-09-23 — PR: https://github.com/mlorentedev/garsync/pull/111 -->
