@@ -23,7 +23,7 @@ Garmin Connect provides great data, but it's locked in a proprietary cloud.
 | **Data Ownership** | Proprietary Cloud | Local SQLite (Full Control) |
 | **Customization** | Fixed Dashboards | Extensible Astro + Chart.js |
 | **Access** | Web/Mobile Only | REST API + SQL + CLI |
-| **Automation** | Manual Export | Scheduled Incremental Sync |
+| **Automation** | Manual Export | CLI sync over any date window on demand (in-process scheduler: [ADR-008](docs/adr/adr-008-ingestion-ledger-and-adapters.md)) |
 
 ## Quick Start
 
