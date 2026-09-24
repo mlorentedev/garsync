@@ -1,0 +1,99 @@
+# Threat model: an agent-touched code repo. Instruction files, test fixtures and
+# doc snippets may accidentally quote an API key, a JWT or a PEM block from a
+# chat. gitleaks blocks it before it reaches git history, which is the only place
+# a secret cannot be taken back from.
+#
+# Setup (one-time, per clone):
+#   pre-commit install
+# `pre-commit` is a host tool, NOT a project dependency: it is not needed to run
+# the app, the tests or CI, and the hooks below invoke the project's own toolchain
+# through `poetry run`, so there is no second pinned copy of ruff or mypy to drift.
+#
+# Bypass (only with explicit owner approval):
+#   SKIP=gitleaks git commit ...
+
+# A hook that declares no stages of its own defaults to EVERY stage, and this
+# machine dispatches hooks globally through core.hooksPath, so a stage-agnostic
+# hook would fire once per git hook type (pre-commit, post-checkout, pre-push,
+# commit-msg, …) — measured in dotfiles at three gitleaks runs per commit.
+# Pinning the default to pre-commit is a tightening, not a relaxation: it gates
+# strictly earlier, before the secret enters history. A hook that genuinely needs
+# another stage declares its own, which overrides this default.
+default_stages: [pre-commit]
+
+repos:
+  # File hygiene. `--all-files` is deliberately NOT run on adoption: these
+  # govern new and touched files, they do not reformat the existing tree
+  # (anti-scope, same rule the .editorconfig states).
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$' # two trailing spaces are a hard line break in Markdown
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+      - id: detect-private-key
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: local
+    hooks:
+      # The local hooks shell out to the project's toolchain instead of pinning a
+      # second copy of ruff/mypy: `make check` and the hook must agree by
+      # construction, and a version bump lands in poetry.lock once.
+      - id: ruff
+        name: ruff check --fix
+        entry: poetry run ruff check --fix
+        language: system
+        types: [python]
+        require_serial: true
+
+      - id: ruff-format
+        name: ruff format
+        entry: poetry run ruff format
+        language: system
+        types: [python]
+
+      - id: mypy
+        name: mypy --strict src/garsync
+        entry: poetry run mypy --strict src/garsync/
+        language: system
+        pass_filenames: false
+        files: ^src/garsync/
+
+      # The two toolchain-free guards CI already runs (repo-hygiene.yml), wired
+      # locally so a numbering collision or an unpinned action is caught before
+      # the push rather than after it.
+      - id: check-lessons
+        name: Lesson numbering and index integrity
+        entry: bash scripts/check-lessons.sh
+        language: system
+        pass_filenames: false
+        files: ^docs/lessons/
+
+      - id: check-actions-pinned
+        name: Actions pinned to commit SHAs
+        entry: bash scripts/check-actions-pinned.sh
+        language: system
+        pass_filenames: false
+        files: ^\.github/workflows/
+
+# Files no hook should ever read.
+exclude: |
+  (?x)^(
+      \.venv/.*|
+      node_modules/.*|
+      frontend/node_modules/.*|
+      frontend/dist/.*|
+      data/.*|
+      \.pi/.*|
+      \.claude/.*
+  )$

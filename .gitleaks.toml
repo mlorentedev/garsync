@@ -1,0 +1,20 @@
+# Gitleaks configuration — https://github.com/gitleaks/gitleaks#configuration
+#
+# The default ruleset is kept in full; this file only narrows it where a path in
+# THIS repository is a structural false positive.
+
+[extend]
+useDefault = true
+
+[allowlist]
+  paths = [
+    # SOPS + age ciphertext. The values are encrypted to an age recipient and the
+    # data key rotates on every edit, so the whole file changes each commit:
+    # scanning it is slow and yields nothing but high-entropy false positives.
+    # The plaintext never enters this file — `sops -d` writes it to a temp file
+    # that `.gitignore` covers — so there is nothing here to leak in the first place.
+    '''^secrets\.env\.enc$''',
+    # The committed test fixtures and the lesson corpus quote *shapes* of tokens
+    # (`X-API-KEY: test-key`, redacted examples) rather than live credentials.
+    '''^docs/lessons/.*\.md$''',
+  ]

@@ -1,0 +1,28 @@
+# EditorConfig — cross-IDE consistency (CHORE-005). https://editorconfig.org
+# Governs NEW and touched files; the existing tree is NOT reformatted (anti-scope).
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# Markdown: two trailing spaces are a hard line break, and tables are aligned
+# by hand in the architecture docs.
+[*.{md,markdown}]
+trim_trailing_whitespace = false
+
+# Data/config files conventionally use 2-space indent.
+[*.{yml,yaml,json,jsonc}]
+indent_size = 2
+
+# Tab-significant formats.
+[Makefile]
+indent_style = tab
+
+# Frontend (Astro, TypeScript, CSS) and the docs site follow npm convention.
+[*.{astro,ts,tsx,js,mjs,cjs,css,html}]
+indent_size = 2
