@@ -49,3 +49,12 @@ coverage.out
 
 # Agent session state (pi subagent artifacts)
 .pi/
+
+# --- `dotf spec review` state (fleet convention: ts-bridge #340, kubelab) -------
+# The reviewer transcript is its full tool-call log and runs to megabytes (3.6 MB for
+# one SEC-001 run), and review-request.json is the launcher's own record. Neither is
+# spec contract. `review.md` stays tracked: it is the signed verdict the archive gate
+# reads, so a FAIL verdict is committed rather than left on someone's disk.
+specs/**/review-transcript.jsonl
+specs/**/review-transcript.jsonl.stderr
+specs/**/review-request.json

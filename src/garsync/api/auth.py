@@ -120,6 +120,26 @@ def make_session_token(access_password: str, now: float | None = None) -> str:
     return f"{expiry}.{sig}"
 
 
+def constant_time_equals(candidate: str, expected: str) -> bool:
+    """Constant-time string comparison that survives any input a client can send.
+
+    `hmac.compare_digest` refuses `str` arguments that contain non-ASCII characters and
+    raises `TypeError: comparing strings with non-ASCII characters is not supported`.
+    On an auth check that turns attacker-controlled input into an unhandled 500: sending
+    `password=ñ` to `POST /login` (percent-encoded UTF-8, which is what any browser
+    sends), a non-ASCII `X-API-KEY` header (latin-1 on the wire) or a non-ASCII session
+    cookie crashed the request **before** the failed attempt was recorded, so it was an
+    unauthenticated denial of service that also bypassed the login rate limiter.
+    Independent adversarial review of specs/SEC-001, 2026-09-25 (`agy/gemini-3.1-pro-high`),
+    filed it as a Blocker and the spec was refused until it was fixed.
+
+    Encoding both sides to UTF-8 keeps the constant-time property (the comparison is over
+    the encoded bytes) and removes the crash. Length is still observable, as it is for
+    `compare_digest` on equal-length inputs; that is not the property this protects.
+    """
+    return hmac.compare_digest(candidate.encode("utf-8"), expected.encode("utf-8"))
+
+
 def verify_session_token(token: str | None, access_password: str, now: float | None = None) -> bool:
     """Constant-time token verification; False on tamper, bad format or expiry."""
     if not token or not access_password:
@@ -133,7 +153,7 @@ def verify_session_token(token: str | None, access_password: str, now: float | N
         f"garsync-session|{expiry_str}".encode(),
         hashlib.sha256,
     ).hexdigest()
-    if not hmac.compare_digest(provided_sig, expected):
+    if not constant_time_equals(provided_sig, expected):
         return False
     current = time.time() if now is None else now
     return int(expiry_str) > current
