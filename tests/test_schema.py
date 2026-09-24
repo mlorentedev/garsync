@@ -2,7 +2,11 @@
 
 import sqlite3
 
+import pytest
+
 from garsync.db.schema import CURRENT_VERSION, init_db
+
+pytestmark = pytest.mark.unit
 
 
 class TestInitDb:

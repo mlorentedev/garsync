@@ -1,0 +1,15 @@
+# Coverage ratchet baseline (CI-002) — the measured value, not a target.
+#
+# Read by scripts/check-coverage.sh, which fails the run if coverage falls more
+# than 2 points below this number. Raising it is a deliberate, reviewable act:
+# add the tests that close the gap, then move the number in the same commit.
+#
+# Measured 2026-09-25 on master:
+#   pytest --cov=garsync -m "not e2e"   128 passed, 760 statements, 129 missed
+#   TOTAL 83% (83.0263)
+#
+# What drags it down, so the next reader knows where the headroom is:
+#   src/garsync/client.py      18%   (network client, exercised through mocks only)
+#   src/garsync/exporter.py     0%   (declared, not yet wired to a route or the CLI)
+#   src/garsync/__main__.py     0%   (module entry point)
+83.03

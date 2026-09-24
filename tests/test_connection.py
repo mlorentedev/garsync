@@ -4,7 +4,11 @@ import sqlite3
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from garsync.db.connection import get_connection
+
+pytestmark = pytest.mark.unit
 
 
 class TestGetConnection:

@@ -21,7 +21,8 @@ help:
 	@echo "=== GarSync ==="
 	@echo ""
 	@echo "  make setup          Install all dependencies (Python + Frontend)"
-	@echo "  make check          Run ALL quality checks (lint, type, test, astro)"
+	@echo "  make check          Run ALL quality checks — exactly what CI runs (lint, type, coverage ratchet, frontend, docs)"
+	@echo "  make check-backend  Backend gate only (lint, type, coverage ratchet)"
 	@echo "  make smoke          E2E smoke test — API + endpoints + frontend build"
 	@echo "  make dev            Build frontend, start app on :8000 (single terminal)"
 	@echo "  make sync DAYS=7    Garmin data sync (requires SOPS secrets)"
@@ -50,15 +51,20 @@ setup:
 	fi
 	@mkdir -p data
 	@cd frontend && npm install --silent
+	@cd docs-site && npm install --silent
 	@echo "✓ Setup complete"
 
 # -----------------------------------------------------------------------------
-# Quality
+# Quality — the ONE gate surface. CI calls these targets and nothing else, so the
+# two cannot diverge. Every check fails loudly: no `|| echo` here, because a make
+# target that prints a green line after a failed check is worse than no check.
 # -----------------------------------------------------------------------------
-.PHONY: check lint format type test frontend-build
+.PHONY: check check-backend lint format type test cover frontend-check docs-check
 
-check: lint type test frontend-check
+check: check-backend frontend-check docs-check
 	@echo "✓ All checks passed"
+
+check-backend: lint type cover
 
 lint:
 	@printf "  lint ........... "
@@ -75,15 +81,25 @@ type:
 	@$(POETRY) run mypy --strict src/garsync/ > /dev/null
 	@echo "ok"
 
+# Plain run: fast, no instrumentation. `cover` is the gate.
 test:
 	@printf "  test ........... "
-	@$(POETRY) run pytest --no-header --tb=short -W ignore::DeprecationWarning 2>&1 | tail -1
+	@$(POETRY) run pytest --no-header --tb=short -W ignore::DeprecationWarning -m "not e2e" 2>&1 | tail -1
+
+# The same run, instrumented, behind the ratchet in .coverage-baseline.
+cover:
+	@bash scripts/check-coverage.sh
 
 frontend-check:
 	@printf "  astro-check .... "
-	@cd frontend && npx astro check 2>/dev/null | grep -oP '\d+ errors' || echo "0 errors"
+	@cd frontend && npm --silent run check
 	@printf "  astro-build .... "
-	@cd frontend && npm run build --silent > /dev/null 2>&1
+	@if ! (cd frontend && npm run build --silent > /dev/null); then echo "FAILED"; exit 1; fi
+	@echo "ok"
+
+docs-check:
+	@printf "  docs-build ..... "
+	@if ! (cd docs-site && npm run build --silent > /dev/null); then echo "FAILED"; exit 1; fi
 	@echo "ok"
 
 # -----------------------------------------------------------------------------

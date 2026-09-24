@@ -2,7 +2,11 @@
 
 import sqlite3
 
+import pytest
+
 from garsync.db.repository import SyncLogRepository
+
+pytestmark = pytest.mark.unit
 
 
 class TestSyncLogRepository:
