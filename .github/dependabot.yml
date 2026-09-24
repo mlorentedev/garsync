@@ -11,6 +11,28 @@ updates:
         exclude-patterns:
           - "astro"
     ignore:
+      # Astro major bumps are held back while the frontend is on the Tailwind v3
+      # integration. Recorded here with the three things ADR-014 requires of an
+      # ignore, because an ignore without them is a silenced alert:
+      #
+      # (a) WHY IT CANNOT BE TAKEN NOW — astro 6 replaced `@astrojs/tailwind` with
+      #     `@tailwindcss/vite`, and `@astrojs/tailwind@6` peers astro
+      #     `^3.0.0 || ^4.0.0 || ^5.0.0`. Every astro major bump therefore fails
+      #     `npm ci` with ERESOLVE (measured in PR #66's `frontend` job, 2026-09-09),
+      #     so astro 7 and Tailwind v4 are ONE migration: CHORE-003 (#62).
+      # (b) WHAT IS ACTUALLY EXPOSED — nothing reachable in the deployed artifact.
+      #     Astro is build-time only here (static output, no adapter, no server
+      #     process in the Docker runtime), `frontend/src` never uses astro:assets
+      #     or <Image>, and the one library-level risk behind the critical alert is
+      #     already patched: the lock installs sharp 0.35.4, the version that
+      #     advisory names as its fix (verified with `npm ci`, 2026-09-25).
+      # (c) WHAT REOPENS IT — an SSR adapter or `output: server`; astro's image
+      #     service used on untrusted input; a public build of the frontend; the
+      #     frontend moving to Tailwind v4 for any other reason; or any advisory
+      #     that a static build can reach. Full ADR: docs/adr/adr-014-dependency-alert-policy.md
+      #
+      # The alerts themselves stay visible — this suppresses a pull-request class,
+      # never the alert list (#64 carries their disposition).
       - dependency-name: "astro"
         update-types:
           - "version-update:semver-major"
