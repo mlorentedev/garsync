@@ -38,4 +38,5 @@ created: "2026-08-27"
 - [x] Lint passes (ruff)
 - [x] No unrelated changes in diff
 - [x] `verification.md` filled with evidence
+- [x] Adversarial review run (`dotf spec review SEC-001`, 2026-09-25, `nan/mimo-v2.5`) with every finding dispositioned: F1 → SEC-003 (#50), F2 and F3 applied as tests, F4 no action with its reason recorded
 - [x] PR opened referencing specs/SEC-001 and #39 (PR #44, merged 2026-09-06)

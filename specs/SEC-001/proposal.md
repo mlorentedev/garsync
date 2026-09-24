@@ -19,7 +19,7 @@ GarSync will be deployed publicly on NaN Cloud Apps (DEPLOY-001): one public HTT
 1. Unauthenticated request to any page (static dashboard included) → redirect to `/login` (the landing IS the login form). Unauthenticated `/api/*` → 401 JSON. Wrong credentials provided → 403.
 2. `POST /login` with `GARSYNC_ACCESS_PASSWORD` → HttpOnly + SameSite=Lax + Secure signed session cookie (stdlib HMAC, no new deps) → dashboard works; `POST /logout` clears it.
 3. Login POST rate-limited in-memory per IP (single replica): 5 failures / 5 min → 429.
-4. `X-API-KEY` remains valid for programmatic `/api/*` access; compared via `secrets.compare_digest`; the `dev_key` fallback disappears — no auth env at all → app runs unprotected with a loud startup warning (local-dev convenience, fail-open only when BOTH `GARSYNC_ACCESS_PASSWORD` and `GARSYNC_API_KEY` are unset; documented in runbook that NaN deployment MUST set the password).
+4. `X-API-KEY` remains valid for programmatic `/api/*` access, compared in **constant time over UTF-8 bytes** so that any value a client can send — including non-ASCII — is rejected rather than raising (see the 2026-09-25 review round in §Risks); the `dev_key` fallback disappears — with **neither** `GARSYNC_ACCESS_PASSWORD` nor `GARSYNC_API_KEY` set the app runs unprotected with a loud startup warning (local-dev convenience, documented in the runbook as acceptable only on a trusted network). With **only** the API key set, `/api/*` requires it while the dashboard pages are served unauthenticated: that state is warned about at startup and documented in `docs/deploy-self-hosted.md` §Environment, and closing it outright is tracked as [SEC-004 (#51)](https://github.com/mlorentedev/garsync/issues/51) — [ADR-010](../adr/adr-010-access-and-sharing-model.md) decides that the dashboard always requires a session, so the API key is a machine credential and never a page one.
 5. CORS: `GARSYNC_ALLOWED_ORIGINS` (comma list) drives the middleware; unset → no CORS middleware (same-origin app); wildcard impossible.
 6. Date query params on `/api/*` routes typed `datetime.date` → malformed input returns 422, never 500.
 
@@ -34,7 +34,21 @@ GarSync will be deployed publicly on NaN Cloud Apps (DEPLOY-001): one public HTT
 
 ## Risks / open questions
 
-- Existing API tests pass auth via header/default — they will be updated in this spec (scoped task).
+- **Stateless sessions cannot be revoked before they expire (accepted, tracked).** The session token is an
+  HMAC over its own expiry, so `POST /logout` clears the cookie but a stolen copy stays valid until it
+  expires. This was a deliberate trade for shipping the gate without a session store; ADR-010 makes
+  server-side revocable sessions a **prerequisite** for the deployed instance, and the work is
+  [SEC-002 (#49)](https://github.com/mlorentedev/garsync/issues/49), folded into the access work of
+  DEPLOY-002. Reviewed and raised by the adversarial review of 2026-09-25 (Minor).
+- **The login rate limiter counts the address the request arrives from (tracked).** Behind the reverse
+  proxy every deployment target uses, `request.client.host` is the proxy's address, so all attempts share
+  one counter and the owner can lock themselves out. Tracked as
+  [SEC-003 (#50)](https://github.com/mlorentedev/garsync/issues/50) with the finding's evidence and a fix
+  sketch; it is a deployment-shape issue, which is why it lands with DEPLOY-002 rather than here.
+- **`POST /login` buffers at most 4 KiB of body** (`MAX_LOGIN_BODY_BYTES`); an oversized body is treated as
+  a failed attempt. Added after the 2026-09-25 review pointed out that the only unauthenticated write path
+  had no limit of its own.
+- Existing API tests pass auth via header/default — they were updated in this spec (scoped task).
 - 401-vs-403 semantics: 401 = no credentials presented, 403 = credentials presented but invalid (change from current blanket 403; issue AC only pins 401 for unauthenticated).
 - In-memory rate limiter resets on process restart — accepted with 1 replica (NaN Apps).
 - Session signing key derived from `GARSYNC_ACCESS_PASSWORD` → password rotation invalidates sessions (accepted, documented).

@@ -1,6 +1,5 @@
 """FastAPI application factory for garsync."""
 
-import hmac
 import logging
 import os
 import sqlite3
@@ -18,6 +17,7 @@ from garsync.api.auth import (
     SESSION_COOKIE_NAME,
     SESSION_TTL_SECONDS,
     LoginRateLimiter,
+    constant_time_equals,
     make_session_token,
     render_login_page,
     verify_session_token,
@@ -27,6 +27,11 @@ from garsync.db.connection import get_connection
 from garsync.db.schema import init_db
 
 logger = logging.getLogger("garsync.auth")
+
+# Largest login body the app will buffer before treating the attempt as failed. The
+# URL-encoded form is a handful of bytes; anything past this is a client trying to spend
+# the server's memory, and the endpoint needs no credentials to reach it.
+MAX_LOGIN_BODY_BYTES = 4096
 
 
 @asynccontextmanager
@@ -91,7 +96,7 @@ def create_app(conn: sqlite3.Connection | None = None) -> FastAPI:
             if api_key:
                 provided = request.headers.get("X-API-KEY")
                 if provided is not None:
-                    if hmac.compare_digest(provided, api_key):
+                    if constant_time_equals(provided, api_key):
                         return await call_next(request)
                     return JSONResponse(
                         status_code=status.HTTP_403_FORBIDDEN,
@@ -127,10 +132,30 @@ def create_app(conn: sqlite3.Connection | None = None) -> FastAPI:
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
-        form = parse_qs((await request.body()).decode())
+        # Cap what an unauthenticated endpoint will buffer: `await request.body()` read
+        # whatever the client sent, so `POST /login` was a free memory lever for anyone
+        # who could reach it. The proxy's body limit is a second line of defence, not the
+        # first one on the app's only unauthenticated write path. Independent review of
+        # specs/SEC-001 (2026-09-25) raised it as speculative; it is cheap to close, and an
+        # oversized body counts as a failed attempt rather than a distinct status, so the
+        # response is not an oracle for how the body was rejected.
+        body = b""
+        async for chunk in request.stream():
+            body += chunk
+            if len(body) > MAX_LOGIN_BODY_BYTES:
+                limiter.record_failure(client_ip)
+                return HTMLResponse(
+                    render_login_page("Invalid password. Try again."),
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                )
+
+        # errors="replace": a body that is not valid UTF-8 is a wrong password, not a
+        # 500. A bare `.decode()` raised UnicodeDecodeError on `password=\xff` —
+        # reachable unauthenticated, and the same crash class the compare fix addresses.
+        form = parse_qs(body.decode("utf-8", errors="replace"))
         supplied = form.get("password", [""])[0]
 
-        if access_password and hmac.compare_digest(supplied, access_password):
+        if access_password and constant_time_equals(supplied, access_password):
             limiter.reset(client_ip)
             response = RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
             response.set_cookie(
