@@ -84,7 +84,11 @@ repos:
         entry: bash scripts/check-actions-pinned.sh
         language: system
         pass_filenames: false
-        files: ^\.github/workflows/
+        # The script's own scope: `.github/workflows` and `.gitea/workflows
+        # (.yml/.yaml) plus composite action manifests. A narrower pattern here
+        # would let an unpinned action through the hook and only reach CI
+        # (CodeRabbit, PR #103).
+        files: ^\.(github|gitea)/workflows/|^\.github/actions/.*/action\.ya?ml$
 
 # Files no hook should ever read.
 exclude: |
