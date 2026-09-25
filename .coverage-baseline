@@ -4,6 +4,15 @@
 # than 2 points below this number. Raising it is a deliberate, reviewable act:
 # add the tests that close the gap, then move the number in the same commit.
 #
+# Measured 2026-09-25 on `feat/ingest-ledger-idempotent-writes` (SUB-002, first cycle — the window
+# rule):
+#   pytest --cov=garsync -m "not e2e"   236 passed, 971 statements, 144 missed
+#   TOTAL 85% (85.17)
+#
+# Raised from 84.07 by the tests that arrived with `src/garsync/ingest/window.py` — 64 of the 67 new
+# statements, covered 100% by the fifteen table-driven cases that pin the coverage watermark (settle,
+# granularity, the 14-day floor, gap chunking, the DST fold, the ≈71-call arithmetic).
+#
 # Measured 2026-09-25 on `feat/alembic-schema-migration` (SUB-001):
 #   pytest --cov=garsync -m "not e2e"   219 passed, 904 statements, 144 missed
 #   TOTAL 84% (84.07)
@@ -18,4 +27,4 @@
 #   src/garsync/exporter.py     0%   (declared, not yet wired to a route or the CLI)
 #   src/garsync/db/backup.py   59%   (the CLI entry point; the snapshot itself is covered)
 #   src/garsync/__main__.py     0%   (module entry point)
-84.07
+85.17
