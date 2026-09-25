@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/mlorentedev/garsync/compare/v0.2.3...v0.3.0) (2026-09-25)
+
+
+### Features
+
+* **db:** Alembic owns the schema — the v1→v2 migration, provenance, and UTC timestamps ([#117](https://github.com/mlorentedev/garsync/issues/117)) ([cd7f4d8](https://github.com/mlorentedev/garsync/commit/cd7f4d8d3817e236c4b8c2ee63c48d48cde28150))
+
+
+### Documentation
+
+* **spec:** archive SUB-001, and promote what it taught ([#120](https://github.com/mlorentedev/garsync/issues/120)) ([1943150](https://github.com/mlorentedev/garsync/commit/19431507f2babd58736b3490a2f40a88606e3912))
+
 ## [0.2.3](https://github.com/mlorentedev/garsync/compare/v0.2.2...v0.2.3) (2026-09-24)
 
 
