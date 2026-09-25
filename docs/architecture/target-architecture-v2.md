@@ -501,6 +501,15 @@ is **cancelled**: it only existed to choose a BLE route, and SC-09 removed the B
 | **M4** | Weigh in with the phone **in another room**, then open the app: does the reading appear **with its original timestamp**? | whether the FitDays cloud can be the only scale path, or whether local capture is required (ADR-012) | 5 minutes, at home |
 | **M5** | Does the owner's watch model support **Health Snapshot**, and does the pinned `garminconnect` expose it? | whether a 2-minute morning ritual can supply HRV/HR without sleeping with the watch (SC-06's optional add-on) | 10 minutes |
 | **M6** | From a phone on 4G, does a tailnet-resolved name reach the app **through the tunnel** (source `100.64.x.x`), and does `vpn-whitelist` fail closed? | which of the two routes is the daily one (ADR-011), and whether `forwardAuth` can be trusted as a boundary | 15 minutes on staging |
+| **M7** | Can an activity's **stream still be re-fetched after 90 days**? Pick an activity older than the retention window and request its detail/stream endpoint | whether ADR-008 §9's window is a **cache policy** or a **data-loss boundary** — i.e. whether §10's stream-dependent metrics can ever exist for old activities. If Garmin stops serving them, the window is a scope decision about which historical metrics may exist, not a disk decision | 10 minutes, one old activity |
+| **M8** | Is the **JSON key order** of the same Garmin payload stable across two real fetches? (Compare the two responses byte-for-byte for one activity and one day) | whether `raw_data` must be canonicalised for SUB-002's change predicate, or whether the text comparison is enough (lesson 031) | 3 minutes, 2 calls |
+| **M9** | Does any of the **four biometrics endpoints** return an **empty response for a day that already has values**? | the scope of SUB-002's carried-vs-absent rule (its §Q1): whether `COALESCE(excluded.col, col)` must cover every payload column or only the sparsely-populated ones | 5 minutes, ~12 calls |
+
+**M8 and M9 were attempted on 2026-09-25 and are *blocked*, not answered:** every login strategy was
+refused at the network edge (429 from Garmin's mobile endpoints, Cloudflare 403 on the portal) with no
+cached token on disk, and the retry ladder only deepened the block (lesson 030). Both take their
+declared defaults in SUB-002 and are re-run when the edge relents — they are cheap enough that a later
+session should not treat them as spent.
 
 Smaller checks that gate nothing but change what stays open behind the door: does the pinned
 `garminconnect` expose the body-composition and weigh-in endpoints (a possible one-way mirror into
