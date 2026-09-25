@@ -1,7 +1,7 @@
 ---
 id: "SUB-001"
 type: spec
-status: draft # draft | implementing | verifying | archived
+status: archived # draft | implementing | verifying | archived
 created: "2026-09-24"
 issue: "mlorentedev/garsync#82"   # repo#NNN — GitHub issue / Project item that tracks this spec
 tags: [spec, proposal, schema, migrations, alembic, sqlite]
@@ -195,3 +195,5 @@ from the design document, it says so.
 - Ticket plan: [`docs/architecture/ticket-plan.md`](../../docs/architecture/ticket-plan.md) §3 Block B
 - Evidence used above was measured in this session against `data/garsync.db` (100 activities, `timeZoneId` 153/121, offsets `-420`/`-480`, `startTimeGMT` in 100/100 rows, `activityTrainingLoad` 2/100, span 2026-01-10 → 2026-03-01) and is reproduced in `verification.md`.
 - Ruled out of scope and filed: [#114](https://github.com/mlorentedev/garsync/issues/114) — the v2 table list has no owner per row (`metric_registry`, `auth_audit`).
+
+<!-- archived 2026-09-24 — PR: https://github.com/mlorentedev/garsync/pull/117 -->
