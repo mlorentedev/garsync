@@ -247,6 +247,12 @@ def _rebuild_activities(bind: sa.Connection) -> None:
                 activity_name,
                 activity_type,
                 strftime('%Y-%m-%dT%H:%M:%SZ', json_extract(raw_data, '$.startTimeGMT')),
+                -- The offset is the difference between two spellings Garmin reports for *one*
+                -- instant, so a DST fold cannot affect it: an ambiguous local wall time does not
+                -- matter when its UTC twin is handed over beside it, and no zone is consulted. Where
+                -- ambiguity would bite is the reverse direction — rebuilding a local calendar day
+                -- from start_time and this column — which is why that rule is a decision of its own
+                -- (SUB-005) rather than something this revision assumes.
                 CAST(ROUND(
                     (julianday(json_extract(raw_data, '$.startTimeLocal'))
                      - julianday(json_extract(raw_data, '$.startTimeGMT'))) * 1440

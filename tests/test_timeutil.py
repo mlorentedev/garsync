@@ -24,8 +24,7 @@ pytestmark = pytest.mark.unit
         (
             datetime(2026, 1, 11, 5, 48, 59, tzinfo=timezone(timedelta(hours=1))),
             "2026-01-11T04:48:59Z",
-        ),
-        # Sub-second precision is dropped rather than rounded into the next second.
+        ),  # Sub-second precision is dropped rather than rounded into the next second.
         (datetime(2026, 1, 11, 4, 48, 59, 999999, tzinfo=UTC), "2026-01-11T04:48:59Z"),
     ],
 )
@@ -40,6 +39,10 @@ def test_utc_z_is_the_canonical_spelling(value: datetime, expected: str) -> None
         ("  2026-01-11 04:48:59  ", datetime(2026, 1, 11, 4, 48, 59, tzinfo=UTC)),
         # The ISO spelling Garmin's newer endpoints use, accepted by the fallback parser.
         ("2026-01-11T04:48:59", datetime(2026, 1, 11, 4, 48, 59, tzinfo=UTC)),
+        # An explicit offset is converted, never relabelled: `+05:00` is 23:48:59Z the day before, and
+        # `replace(tzinfo=UTC)` would have called it 04:48:59Z five hours wrong.
+        ("2026-01-11T04:48:59+05:00", datetime(2026, 1, 10, 23, 48, 59, tzinfo=UTC)),
+        ("2026-01-11T04:48:59Z", datetime(2026, 1, 11, 4, 48, 59, tzinfo=UTC)),
     ],
 )
 def test_parse_garmin_timestamp_reads_both_spellings(value: object, expected: datetime) -> None:

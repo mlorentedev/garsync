@@ -25,7 +25,11 @@ def utc_z(value: datetime) -> str:
 
 
 def parse_garmin_timestamp(value: object) -> datetime | None:
-    """Garmin's `YYYY-MM-DD HH:MM:SS` to an aware UTC datetime, or None if it is not one."""
+    """Garmin's `YYYY-MM-DD HH:MM:SS` to an aware UTC datetime, or None if it is not one.
+
+    An explicit offset, if a payload ever carries one, is honoured by **conversion**: relabelling
+    `+05:00` as UTC would move the instant five hours and still look like a normalised value.
+    """
     if not isinstance(value, str) or not value.strip():
         return None
     text = value.strip()
@@ -34,9 +38,12 @@ def parse_garmin_timestamp(value: object) -> datetime | None:
     # that does not contain it.
     for parse in (lambda t: datetime.strptime(t, GARMIN_TIMESTAMP), datetime.fromisoformat):  # noqa: DTZ007
         try:
-            return parse(text).replace(tzinfo=UTC)
+            parsed = parse(text)
         except ValueError:
             continue
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=UTC)
+        return parsed.astimezone(UTC)
     return None
 
 
