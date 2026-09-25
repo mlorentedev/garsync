@@ -19,38 +19,125 @@ from garsync.db.connection import transaction
 #: responses, so the gap is a property of the source, not of the migration.
 DERIVED_COLUMNS = ("training_load", "aerobic_te", "anaerobic_te", "normalized_power", "avg_power")
 
-#: One statement for both the single and the batch path: two copies of an upsert is two places for a
-#: new column to be forgotten.
-_ACTIVITY_UPSERT = """
-    INSERT INTO activities (
-        activity_id, source, source_id, activity_name, activity_type, start_time,
-        tz_offset_minutes, duration_seconds, distance_meters, average_heart_rate,
-        max_heart_rate, calories, training_load, aerobic_te, anaerobic_te,
-        normalized_power, avg_power, raw_data
-    ) VALUES (
-        :activity_id, :source, :source_id, :activity_name, :activity_type, :start_time,
-        :tz_offset_minutes, :duration_seconds, :distance_meters, :average_heart_rate,
-        :max_heart_rate, :calories, :training_load, :aerobic_te, :anaerobic_te,
-        :normalized_power, :avg_power, :raw_data
+#: Columns whose **absence must not erase a known value**, per table: the fields a class's request may
+#: legitimately not supply. Getting this wrong is a silent data loss, so each set is a decision:
+#:
+#: * `activities` — the five derived numbers, by measurement: `activityTrainingLoad` is absent from 98 of
+#:   100 list payloads. The core summary fields (calories, distance, heart rate) are always carried by
+#:   this request, so a `None` there is Garmin withdrawing a value and it lands.
+#: * the daily classes — **every** payload column, because one of the four biometrics endpoints can come
+#:   back empty and a night's sleep can simply not be published yet; a re-pull of the 14-day window would
+#:   otherwise null a day that already had values (ADR-008 §5 amendment, SUB-002 §Q1).
+CARRY_ON_ABSENCE: dict[str, tuple[str, ...]] = {
+    "activities": DERIVED_COLUMNS,
+    "daily_metrics": (
+        "resting_heart_rate",
+        "hrv_baseline_status",
+        "body_battery_highest",
+        "body_battery_lowest",
+        "stress_average",
+        "raw_data",
+    ),
+    "sleep_sessions": (
+        "sleep_start",
+        "sleep_end",
+        "total_sleep_seconds",
+        "deep_sleep_seconds",
+        "light_sleep_seconds",
+        "rem_sleep_seconds",
+        "awake_sleep_seconds",
+        "sleep_score",
+        "raw_data",
+    ),
+}
+
+#: The columns each upsert takes from a row dict, in the order the table declares them. The key columns
+#: are listed separately because they are matched, never updated.
+ACTIVITY_PAYLOAD_COLUMNS = (
+    "activity_name",
+    "activity_type",
+    "start_time",
+    "tz_offset_minutes",
+    "duration_seconds",
+    "distance_meters",
+    "average_heart_rate",
+    "max_heart_rate",
+    "calories",
+    *DERIVED_COLUMNS,
+    "raw_data",
+)
+DAILY_METRICS_PAYLOAD_COLUMNS = (
+    "resting_heart_rate",
+    "hrv_baseline_status",
+    "body_battery_highest",
+    "body_battery_lowest",
+    "stress_average",
+    "raw_data",
+)
+SLEEP_PAYLOAD_COLUMNS = (
+    "sleep_start",
+    "sleep_end",
+    "total_sleep_seconds",
+    "deep_sleep_seconds",
+    "light_sleep_seconds",
+    "rem_sleep_seconds",
+    "awake_sleep_seconds",
+    "sleep_score",
+    "raw_data",
+)
+
+
+def _incoming(column: str, table: str, carried: tuple[str, ...]) -> str:
+    """The value a column would take: the incoming one, or the stored one when absence must not win."""
+    if column in carried:
+        return f"COALESCE(excluded.{column}, {table}.{column})"
+    return f"excluded.{column}"
+
+
+def _guarded_upsert(
+    table: str,
+    key_columns: tuple[str, ...],
+    conflict_on: tuple[str, ...],
+    payload_columns: tuple[str, ...],
+) -> str:
+    """`INSERT … ON CONFLICT … DO UPDATE SET … WHERE …`, built from one column list.
+
+    The `SET` clause and the change predicate are generated from the same list on purpose: a predicate
+    maintained by hand is a column list that drifts from the `SET` clause the first time a column is
+    added, and the drift is silent (lesson 026). The predicate uses `IS NOT` rather than `!=` so that
+    `NULL` compares — a column that is `NULL` on both sides is not a change — which is what makes an
+    identical re-pull execute **no UPDATE at all**, so `updated_at` cannot move either (ADR-008 §5).
+    """
+    carried = CARRY_ON_ABSENCE[table]
+    columns = (*key_columns, *payload_columns)
+    assignments = ", ".join(
+        f"{column} = {_incoming(column, table, carried)}" for column in payload_columns
     )
-    ON CONFLICT(source, source_id) DO UPDATE SET
-        activity_name      = excluded.activity_name,
-        activity_type      = excluded.activity_type,
-        start_time         = excluded.start_time,
-        tz_offset_minutes  = excluded.tz_offset_minutes,
-        duration_seconds   = excluded.duration_seconds,
-        distance_meters    = excluded.distance_meters,
-        average_heart_rate = excluded.average_heart_rate,
-        max_heart_rate     = excluded.max_heart_rate,
-        calories           = excluded.calories,
-        training_load      = excluded.training_load,
-        aerobic_te         = excluded.aerobic_te,
-        anaerobic_te       = excluded.anaerobic_te,
-        normalized_power   = excluded.normalized_power,
-        avg_power          = excluded.avg_power,
-        raw_data           = excluded.raw_data,
-        updated_at         = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-"""
+    predicate = " OR ".join(
+        f"{_incoming(column, table, carried)} IS NOT {table}.{column}" for column in payload_columns
+    )
+    return (
+        f"INSERT INTO {table} ({', '.join(columns)})\n"
+        f"VALUES ({', '.join(':' + column for column in columns)})\n"
+        f"ON CONFLICT({', '.join(conflict_on)}) DO UPDATE SET\n"
+        f"    {assignments},\n"
+        f"    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')\n"
+        f"WHERE {predicate}\n"
+    )
+
+
+#: One statement per table for both the single and the batch path: two copies of an upsert is two places
+#: for a new column to be forgotten.
+_ACTIVITY_UPSERT = _guarded_upsert(
+    "activities",
+    ("activity_id", "source", "source_id"),
+    ("source", "source_id"),
+    ACTIVITY_PAYLOAD_COLUMNS,
+)
+_DAILY_METRICS_UPSERT = _guarded_upsert(
+    "daily_metrics", ("date",), ("date",), DAILY_METRICS_PAYLOAD_COLUMNS
+)
+_SLEEP_UPSERT = _guarded_upsert("sleep_sessions", ("date",), ("date",), SLEEP_PAYLOAD_COLUMNS)
 
 
 class ActivityRepository:
@@ -59,13 +146,16 @@ class ActivityRepository:
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
 
-    def upsert(self, row: dict[str, Any]) -> None:
+    def upsert(self, row: dict[str, Any]) -> int:
         """Insert or update an activity, keyed on its (source, source_id) natural key.
 
         The write joins whatever transaction the caller owns; committing here would end that
         transaction and publish a half-written run (lesson 028).
+
+        Returns how many rows the statement actually changed — 0 when the guard found nothing new,
+        which is what the ledger records as `rows_upserted` (ADR-008 §5).
         """
-        self._conn.execute(_ACTIVITY_UPSERT, row)
+        return self._conn.execute(_ACTIVITY_UPSERT, row).rowcount
 
     def derived_gap_counts(self) -> dict[str, int]:
         """How many activities the payload did not supply each derived column for.
@@ -82,11 +172,13 @@ class ActivityRepository:
             for column in DERIVED_COLUMNS
         }
 
-    def upsert_batch(self, rows: list[dict[str, Any]]) -> None:
-        """Upsert multiple activities as one unit of work, joining the caller's if there is one."""
+    def upsert_batch(self, rows: list[dict[str, Any]]) -> int:
+        """Upsert multiple activities as one unit of work, joining the caller's if there is one.
+
+        Returns the number of rows that actually changed, summed over the batch.
+        """
         with transaction(self._conn):
-            for row in rows:
-                self._conn.execute(_ACTIVITY_UPSERT, row)
+            return sum(self._conn.execute(_ACTIVITY_UPSERT, row).rowcount for row in rows)
 
     def get_by_id(self, activity_id: int) -> sqlite3.Row | None:
         """Get a single activity by ID, or None."""
@@ -210,30 +302,9 @@ class BiometricsRepository:
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
 
-    def upsert(self, row: dict[str, Any]) -> None:
-        """Insert or update daily metrics by date."""
-        self._conn.execute(
-            """
-            INSERT INTO daily_metrics (
-                date, resting_heart_rate, hrv_baseline_status,
-                body_battery_highest, body_battery_lowest,
-                stress_average, raw_data
-            ) VALUES (
-                :date, :resting_heart_rate, :hrv_baseline_status,
-                :body_battery_highest, :body_battery_lowest,
-                :stress_average, :raw_data
-            )
-            ON CONFLICT(date) DO UPDATE SET
-                resting_heart_rate   = excluded.resting_heart_rate,
-                hrv_baseline_status  = excluded.hrv_baseline_status,
-                body_battery_highest = excluded.body_battery_highest,
-                body_battery_lowest  = excluded.body_battery_lowest,
-                stress_average       = excluded.stress_average,
-                raw_data             = excluded.raw_data,
-                updated_at           = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-            """,
-            row,
-        )
+    def upsert(self, row: dict[str, Any]) -> int:
+        """Insert or update daily metrics by date, returning the rows actually changed."""
+        return self._conn.execute(_DAILY_METRICS_UPSERT, row).rowcount
 
     def get_by_date(self, date: str) -> sqlite3.Row | None:
         """Get daily metrics for a specific date (ISO format string).
@@ -297,33 +368,9 @@ class SleepRepository:
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
 
-    def upsert(self, row: dict[str, Any]) -> None:
-        """Insert or update sleep data by date."""
-        self._conn.execute(
-            """
-            INSERT INTO sleep_sessions (
-                date, sleep_start, sleep_end, total_sleep_seconds,
-                deep_sleep_seconds, light_sleep_seconds, rem_sleep_seconds,
-                awake_sleep_seconds, sleep_score, raw_data
-            ) VALUES (
-                :date, :sleep_start, :sleep_end, :total_sleep_seconds,
-                :deep_sleep_seconds, :light_sleep_seconds, :rem_sleep_seconds,
-                :awake_sleep_seconds, :sleep_score, :raw_data
-            )
-            ON CONFLICT(date) DO UPDATE SET
-                sleep_start         = excluded.sleep_start,
-                sleep_end           = excluded.sleep_end,
-                total_sleep_seconds = excluded.total_sleep_seconds,
-                deep_sleep_seconds  = excluded.deep_sleep_seconds,
-                light_sleep_seconds = excluded.light_sleep_seconds,
-                rem_sleep_seconds   = excluded.rem_sleep_seconds,
-                awake_sleep_seconds = excluded.awake_sleep_seconds,
-                sleep_score         = excluded.sleep_score,
-                raw_data            = excluded.raw_data,
-                updated_at          = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-            """,
-            row,
-        )
+    def upsert(self, row: dict[str, Any]) -> int:
+        """Insert or update sleep data by date, returning the rows actually changed."""
+        return self._conn.execute(_SLEEP_UPSERT, row).rowcount
 
     def get_by_date(self, date: str) -> sqlite3.Row | None:
         """Get sleep data for a specific date (ISO format string)."""

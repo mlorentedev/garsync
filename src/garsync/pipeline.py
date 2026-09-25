@@ -1,6 +1,5 @@
 """Core synchronization pipeline logic."""
 
-import json
 import logging
 import sqlite3
 from datetime import date
@@ -13,6 +12,7 @@ from garsync.db import (
     IngestRunRepository,
     SleepRepository,
 )
+from garsync.ingest.payload import canonical_json
 from garsync.models import DailyBiometrics, NormalizedActivity, SleepData
 from garsync.timeutil import offset_minutes, parse_garmin_timestamp, utc_z
 
@@ -58,7 +58,7 @@ def activity_to_row(activity: NormalizedActivity) -> dict[str, Any]:
         "anaerobic_te": raw.get("anaerobicTrainingEffect"),
         "normalized_power": raw.get("normPower"),
         "avg_power": raw.get("avgPower"),
-        "raw_data": json.dumps(raw),
+        "raw_data": canonical_json(raw),
     }
 
 
@@ -71,7 +71,7 @@ def biometrics_to_row(bio: DailyBiometrics) -> dict[str, Any]:
         "body_battery_highest": bio.body_battery_highest,
         "body_battery_lowest": bio.body_battery_lowest,
         "stress_average": bio.stress_average,
-        "raw_data": json.dumps(bio.raw_data),
+        "raw_data": canonical_json(bio.raw_data),
     }
 
 
@@ -88,7 +88,7 @@ def sleep_to_row(sleep: SleepData) -> dict[str, Any]:
         "rem_sleep_seconds": sleep.rem_sleep_seconds,
         "awake_sleep_seconds": sleep.awake_sleep_seconds,
         "sleep_score": sleep.sleep_score,
-        "raw_data": json.dumps(sleep.raw_data),
+        "raw_data": canonical_json(sleep.raw_data),
     }
 
 

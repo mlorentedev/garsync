@@ -53,10 +53,16 @@ created: "2026-09-24"
 
 ### 3. Idempotency — literal, and proven on a narrower payload
 
-- [ ] [P] [AC6] Failing test `tests/test_idempotency.py::TestNarrowerRepull`: (i) byte-identical re-pull → zero changed rows and `updated_at` unmoved; (ii) a **strictly narrower** payload (no `activityTrainingLoad`/`normPower`/`avgPower`) → no known value lost; (iii) a real value change still lands
-- [ ] [AC6] Implement the guarded UPSERT (`DO UPDATE SET … WHERE excluded.col IS NOT activities.col OR …`) + canonical `raw_data` serialisation for `activities`
-- [ ] [AC6] Failing test: the same three cases for `daily_metrics` (one of the four endpoints returning empty) and `sleep_sessions` — the **per-table** carried set (Q1)
-- [ ] [AC6] Implement the per-table carried sets (`COALESCE(excluded.col, table.col)`) and their declaration, with the invariant in the docstring
+- [x] [P] [AC6] Failing test `tests/test_idempotency.py::TestNarrowerRepull`: (i) byte-identical re-pull → zero changed rows and `updated_at` unmoved; (ii) a **strictly narrower** payload (no `activityTrainingLoad`/`normPower`/`avgPower`) → no known value lost; (iii) a real value change still lands
+- [x] [AC6] Implement the guarded UPSERT (`DO UPDATE SET … WHERE excluded.col IS NOT activities.col OR …`) + canonical `raw_data` serialisation for `activities` — as one generator (`_guarded_upsert`) so the `SET` clause and the predicate cannot drift apart
+- [x] [AC6] Failing test: the same three cases for `daily_metrics` (one of the four endpoints returning empty) and `sleep_sessions` — the **per-table** carried set (Q1)
+- [x] [AC6] Implement the per-table carried sets (`COALESCE(excluded.col, table.col)`) and their declaration, with the invariant in the docstring — asserted one column at a time, driven by the same constants the SQL is built from
+
+> **Verified on the real rows, not only on fixtures:** on a `/tmp` copy of `data/garsync.db`, pass 1 over
+the 100 + 4 + 4 stored payloads changes every row (the declared canonical-serialisation cost) and pass 2
+changes **zero**; a re-pull from a payload that lacks the derived numbers leaves `training_load 7.5` and
+`normalized_power 231.0` intact and does not move `updated_at`. `upsert()` now returns that count
+(`rowcount`, measured equal to `changes()`), which is the instrument block 4 writes into the ledger.
 
 ### 4. The ledger counts reality
 
