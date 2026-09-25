@@ -4,17 +4,18 @@ from garsync.db.connection import get_connection
 from garsync.db.repository import (
     ActivityRepository,
     BiometricsRepository,
+    IngestRunRepository,
     SleepRepository,
-    SyncLogRepository,
 )
-from garsync.db.schema import CURRENT_VERSION, init_db
+from garsync.db.schema import init_db, migrate, open_database
 
 __all__ = [
-    "CURRENT_VERSION",
     "ActivityRepository",
     "BiometricsRepository",
+    "IngestRunRepository",
     "SleepRepository",
-    "SyncLogRepository",
     "get_connection",
     "init_db",
+    "migrate",
+    "open_database",
 ]

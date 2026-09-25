@@ -9,8 +9,7 @@ import typer
 from rich.console import Console
 
 from garsync.client import GarminClient
-from garsync.db.connection import get_connection
-from garsync.db.schema import init_db
+from garsync.db.schema import open_database
 from garsync.pipeline import SyncService
 
 app = typer.Typer(help="GarSync: Garmin Connect data extraction pipeline")
@@ -61,8 +60,9 @@ def sync(
 
     conn = None
     if db:
-        conn = get_connection(db)
-        init_db(conn)
+        # `open_database` snapshots the file first when a migration is pending: this is the only
+        # place that knows it is a file rather than a fixture, which is what a backup needs.
+        conn = open_database(db)
         service = SyncService(client, conn)
 
         latest_date = service.get_latest_synced_date()

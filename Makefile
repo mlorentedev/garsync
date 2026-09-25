@@ -7,6 +7,7 @@ SHELL := /bin/bash
 
 POETRY ?= poetry
 DAYS ?= 7
+DB ?= data/garsync.db
 SMOKE_PORT ?= 8099
 
 export SOPS_AGE_KEY_FILE ?= /home/manu/.config/age/garsync.txt
@@ -26,6 +27,7 @@ help:
 	@echo "  make smoke          E2E smoke test — API + endpoints + frontend build"
 	@echo "  make dev            Build frontend, start app on :8000 (single terminal)"
 	@echo "  make sync DAYS=7    Garmin data sync (requires SOPS secrets)"
+	@echo "  make db-backup      Snapshot the database before it is migrated (VACUUM INTO)"
 	@echo "  make format         Auto-fix code style (ruff)"
 	@echo "  make docker         Build and run Docker image on :8000"
 	@echo "  make clean          Stop containers, remove temp files"
@@ -208,6 +210,12 @@ sync:
 # -----------------------------------------------------------------------------
 # Maintenance
 # -----------------------------------------------------------------------------
+.PHONY: db-backup
+
+db-backup:
+	@$(POETRY) run python -m garsync.db.backup $(DB)
+	@echo "✓ Snapshot written"
+
 .PHONY: clean
 
 clean: stop

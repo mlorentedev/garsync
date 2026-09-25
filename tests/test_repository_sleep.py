@@ -17,7 +17,7 @@ class TestSleepRepository:
         repo.upsert(sample_sleep_row)
 
         row = in_memory_db.execute(
-            "SELECT * FROM sleep WHERE date = ?",
+            "SELECT * FROM sleep_sessions WHERE date = ?",
             (sample_sleep_row["date"],),
         ).fetchone()
         assert row is not None

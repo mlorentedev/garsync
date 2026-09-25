@@ -7,8 +7,8 @@ from fastapi import Request
 from garsync.db.repository import (
     ActivityRepository,
     BiometricsRepository,
+    IngestRunRepository,
     SleepRepository,
-    SyncLogRepository,
 )
 
 
@@ -33,6 +33,6 @@ def get_sleep_repo(request: Request) -> SleepRepository:
     return SleepRepository(get_db(request))
 
 
-def get_sync_log_repo(request: Request) -> SyncLogRepository:
-    """Factory for SyncLogRepository."""
-    return SyncLogRepository(get_db(request))
+def get_ingest_run_repo(request: Request) -> IngestRunRepository:
+    """Factory for IngestRunRepository."""
+    return IngestRunRepository(get_db(request))

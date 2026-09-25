@@ -21,7 +21,7 @@ def seeded_db() -> sqlite3.Connection:
     _seed_activities(conn)
     _seed_biometrics(conn)
     _seed_sleep(conn)
-    _seed_sync_log(conn)
+    _seed_ingest_runs(conn)
     return conn
 
 
@@ -46,16 +46,17 @@ def _seed_activities(conn: sqlite3.Connection) -> None:
         conn.execute(
             """
             INSERT INTO activities
-                (activity_id, activity_name, activity_type, start_time,
+                (activity_id, source, source_id, activity_name, activity_type, start_time,
                  duration_seconds, distance_meters, average_heart_rate,
                  max_heart_rate, calories, raw_data)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, 'garmin', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 1000 + i,
+                str(1000 + i),
                 f"Activity {i}",
                 types[i],
-                f"2026-02-{20 + i:02d}T08:00:00",
+                f"2026-02-{20 + i:02d}T08:00:00Z",
                 1800.0 + i * 600,
                 5000.0 + i * 1000,
                 140 + i,
@@ -71,8 +72,8 @@ def _seed_biometrics(conn: sqlite3.Connection) -> None:
     for i in range(5):
         conn.execute(
             """
-            INSERT INTO biometrics
-                (date, resting_heart_rate, hrv_balance,
+            INSERT INTO daily_metrics
+                (date, resting_heart_rate, hrv_baseline_status,
                  body_battery_highest, body_battery_lowest, stress_average, raw_data)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
@@ -93,7 +94,7 @@ def _seed_sleep(conn: sqlite3.Connection) -> None:
     for i in range(5):
         conn.execute(
             """
-            INSERT INTO sleep
+            INSERT INTO sleep_sessions
                 (date, sleep_start, sleep_end, total_sleep_seconds,
                  deep_sleep_seconds, light_sleep_seconds, rem_sleep_seconds,
                  awake_sleep_seconds, sleep_score, raw_data)
@@ -115,19 +116,20 @@ def _seed_sleep(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
-def _seed_sync_log(conn: sqlite3.Connection) -> None:
+def _seed_ingest_runs(conn: sqlite3.Connection) -> None:
+    """Two runs: one Garmin run of each data class, and one legacy row of the kind v1 wrote."""
     conn.execute(
         """
-        INSERT INTO sync_log (sync_type, records_synced, status, error_message)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO ingest_run (source, sync_type, rows_upserted, status, error_message)
+        VALUES (?, ?, ?, ?, ?)
         """,
-        ("activities", 5, "success", None),
+        ("garmin", "activities", 5, "success", None),
     )
     conn.execute(
         """
-        INSERT INTO sync_log (sync_type, records_synced, status, error_message)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO ingest_run (source, sync_type, rows_upserted, status, error_message)
+        VALUES (?, ?, ?, ?, ?)
         """,
-        ("biometrics", 5, "success", None),
+        ("legacy", "biometrics", 5, "success", None),
     )
     conn.commit()

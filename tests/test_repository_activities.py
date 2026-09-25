@@ -72,6 +72,7 @@ class TestActivityRepository:
         row2 = {
             **sample_activity_row,
             "activity_id": 987654321,
+            "source_id": "987654321",
             "activity_name": "Swim",
         }
         repo.upsert(sample_activity_row)
@@ -90,8 +91,18 @@ class TestActivityRepository:
         repo = ActivityRepository(in_memory_db)
         rows = [
             sample_activity_row,
-            {**sample_activity_row, "activity_id": 111, "activity_name": "Bike"},
-            {**sample_activity_row, "activity_id": 222, "activity_name": "Hike"},
+            {
+                **sample_activity_row,
+                "activity_id": 111,
+                "source_id": "111",
+                "activity_name": "Bike",
+            },
+            {
+                **sample_activity_row,
+                "activity_id": 222,
+                "source_id": "222",
+                "activity_name": "Hike",
+            },
         ]
         repo.upsert_batch(rows)
 
@@ -113,6 +124,7 @@ def _seed_activities(repo: ActivityRepository, base_row: dict, count: int = 5) -
             {
                 **base_row,
                 "activity_id": 1000 + i,
+                "source_id": str(1000 + i),
                 "activity_name": f"Activity {i}",
                 "activity_type": types[i % len(types)],
                 "start_time": f"2026-02-{20 + i:02d}T08:00:00",

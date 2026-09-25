@@ -23,8 +23,7 @@ from garsync.api.auth import (
     verify_session_token,
 )
 from garsync.api.routes import activities, biometrics, sleep, stats, sync
-from garsync.db.connection import get_connection
-from garsync.db.schema import init_db
+from garsync.db.schema import open_database
 
 logger = logging.getLogger("garsync.auth")
 
@@ -38,8 +37,9 @@ MAX_LOGIN_BODY_BYTES = 4096
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage database connection lifecycle."""
     db_path = os.environ.get("GARSYNC_DB_PATH", "data/garsync.db")
-    conn = get_connection(db_path)
-    init_db(conn)
+    # Snapshot-then-migrate: the file is the only copy of this history, and this is the function that
+    # knows a migration is about to rewrite it.
+    conn = open_database(db_path)
     app.state.db = conn
     yield
     conn.close()

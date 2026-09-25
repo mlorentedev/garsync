@@ -4,12 +4,18 @@
 # than 2 points below this number. Raising it is a deliberate, reviewable act:
 # add the tests that close the gap, then move the number in the same commit.
 #
-# Measured 2026-09-25 on master:
-#   pytest --cov=garsync -m "not e2e"   128 passed, 760 statements, 129 missed
-#   TOTAL 83% (83.0263)
+# Measured 2026-09-25 on `feat/alembic-schema-migration` (SUB-001):
+#   pytest --cov=garsync -m "not e2e"   219 passed, 904 statements, 144 missed
+#   TOTAL 84% (84.07)
 #
-# What drags it down, so the next reader knows where the headroom is:
+# Raised from 83.03 in the SUB-001 commit, which added 144 statements (two Alembic revisions, the
+# connection bridge, the backup, the UTC helpers) and the tests that cover them — including the
+# migration rehearsal against a copy of the real database. The number moved because the tests
+# arrived with the code, which is the only way this file is allowed to move.
+#
+# What still drags it down, so the next reader knows where the headroom is:
 #   src/garsync/client.py      18%   (network client, exercised through mocks only)
 #   src/garsync/exporter.py     0%   (declared, not yet wired to a route or the CLI)
+#   src/garsync/db/backup.py   59%   (the CLI entry point; the snapshot itself is covered)
 #   src/garsync/__main__.py     0%   (module entry point)
-83.03
+84.07
