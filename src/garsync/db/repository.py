@@ -1,11 +1,18 @@
 """Repository classes for garsync SQLite tables.
 
 Each repository wraps a single table with upsert, query, and count operations.
-Connection is injected — the caller manages lifecycle and transactions.
+
+Connection is injected, and so is the transaction: a write here **joins** whatever unit of work the
+caller opened (`db.connection.transaction`) and never commits it. A per-row commit is what turned a run
+into a sequence of independent commits once the run began opening its own transaction (lesson 028);
+a write outside any transaction simply autocommits, because the connection runs with
+`isolation_level=None`.
 """
 
 import sqlite3
 from typing import Any
+
+from garsync.db.connection import transaction
 
 #: Garmin's own derived numbers. Re-read from the retained payload rather than refetched, and NULL
 #: wherever the payload did not carry them — `activityTrainingLoad` is absent from most list-endpoint
@@ -53,9 +60,12 @@ class ActivityRepository:
         self._conn = conn
 
     def upsert(self, row: dict[str, Any]) -> None:
-        """Insert or update an activity, keyed on its (source, source_id) natural key."""
+        """Insert or update an activity, keyed on its (source, source_id) natural key.
+
+        The write joins whatever transaction the caller owns; committing here would end that
+        transaction and publish a half-written run (lesson 028).
+        """
         self._conn.execute(_ACTIVITY_UPSERT, row)
-        self._conn.commit()
 
     def derived_gap_counts(self) -> dict[str, int]:
         """How many activities the payload did not supply each derived column for.
@@ -73,10 +83,10 @@ class ActivityRepository:
         }
 
     def upsert_batch(self, rows: list[dict[str, Any]]) -> None:
-        """Upsert multiple activities in a single transaction."""
-        for row in rows:
-            self._conn.execute(_ACTIVITY_UPSERT, row)
-        self._conn.commit()
+        """Upsert multiple activities as one unit of work, joining the caller's if there is one."""
+        with transaction(self._conn):
+            for row in rows:
+                self._conn.execute(_ACTIVITY_UPSERT, row)
 
     def get_by_id(self, activity_id: int) -> sqlite3.Row | None:
         """Get a single activity by ID, or None."""
@@ -224,7 +234,6 @@ class BiometricsRepository:
             """,
             row,
         )
-        self._conn.commit()
 
     def get_by_date(self, date: str) -> sqlite3.Row | None:
         """Get daily metrics for a specific date (ISO format string).
@@ -315,7 +324,6 @@ class SleepRepository:
             """,
             row,
         )
-        self._conn.commit()
 
     def get_by_date(self, date: str) -> sqlite3.Row | None:
         """Get sleep data for a specific date (ISO format string)."""
@@ -386,7 +394,7 @@ class IngestRunRepository:
         error_message: str | None = None,
         source: str = "garmin",
     ) -> None:
-        """Append an ingest run entry."""
+        """Append an ingest run entry (joins the caller's transaction; see ActivityRepository.upsert)."""
         self._conn.execute(
             """
             INSERT INTO ingest_run (source, sync_type, rows_upserted, status, error_message)
@@ -394,7 +402,6 @@ class IngestRunRepository:
             """,
             (source, sync_type, rows_upserted, status, error_message),
         )
-        self._conn.commit()
 
     def get_latest(self, sync_type: str | None = None) -> sqlite3.Row | None:
         """Get the most recent ingest run, optionally filtered by data class."""

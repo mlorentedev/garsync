@@ -39,9 +39,17 @@ created: "2026-09-24"
 
 ### 2. One transaction, and the repositories cannot break it
 
-- [ ] [P] [AC2] Failing test `tests/test_transaction.py::TestTransactionOwnership`: with `BEGIN IMMEDIATE` open, a repository write leaves `in_transaction` `True`; a mid-batch failure rolls back **every** row; `upsert_batch` is atomic; and the measure that motivates it is pinned — a bare `commit()` inside the explicit transaction *does* end it (the negative control)
-- [ ] [AC2] Implement `transaction(conn)` in `src/garsync/db/connection.py` (`isolation_level=None`, `BEGIN IMMEDIATE`, commit/rollback on exit) and make the repository writes not commit under a caller-owned transaction
-- [ ] [AC2] Make the `busy_timeout` explicit in `get_connection` (it already measures 5000 via pysqlite's `timeout=5.0`), with the value and its reason in the docstring
+- [x] [P] [AC2] Failing test `tests/test_transaction.py::TestTransactionOwnership`: with `BEGIN IMMEDIATE` open, a repository write leaves `in_transaction` `True`; a mid-batch failure rolls back **every** row; `upsert_batch` is atomic; and the measure that motivates it is pinned — a bare `commit()` inside the explicit transaction *does* end it (the negative control)
+- [x] [AC2] Implement `transaction(conn)` in `src/garsync/db/connection.py` (`isolation_level=None`, `BEGIN IMMEDIATE`, commit/rollback on exit) and make the repository writes not commit under a caller-owned transaction
+- [x] [AC2] Make the `busy_timeout` explicit in `get_connection` (it already measures 5000 via pysqlite's `timeout=5.0`), with the value and its reason in the docstring — `BUSY_TIMEOUT_MS`, pinned by `tests/test_connection.py::test_the_busy_timeout_is_stated_explicitly`
+
+> **How the invariant is enforced, rather than remembered:** the repositories no longer commit at all.
+> With `isolation_level=None` a statement outside an explicit `BEGIN` has already committed, so the
+> per-row `commit()` was doing nothing except being able to end a caller's transaction; `upsert_batch`
+> opens a transaction of its own, which a nested call joins instead of committing. `transaction()` is
+> re-entrant for exactly that reason, and a nested failure propagates to whoever owns the unit of work
+> instead of being swallowed by a partial commit. `db/backup.py`'s pre-`VACUUM INTO` commit stays as a
+> guard for a connection built elsewhere, with the comment saying so.
 
 ### 3. Idempotency — literal, and proven on a narrower payload
 
