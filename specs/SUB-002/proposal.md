@@ -163,7 +163,10 @@ the window module's gap chunking is the only separable piece left, and the sched
   (`pipeline.py:87`), so no honest coverage claim can be made for them; SUB-003 (`~160 LOC`) owns the
   date-range fetch and pagination. Consequence in §What is not applicable to activities, see Q4.
 - **Retiring `sync_log`.** It stays in place and inert. The drop is a separate, irreversible
-  forward-only revision; it needs its own ticket (Standing Order #4), not a silent ride here.
+  forward-only revision and is **filed as [#122](https://github.com/mlorentedev/garsync/issues/122)
+  (CHORE-009)**, not a silent ride here — Standing Order #4 does not accept a promise that lives only
+  in a spec's Out-of-scope list, and §4.1's "kept read-only for one release" now names the release it
+  waited for.
 - **The Sync page (SC-19) and any new `/api` field.** The ledger's fields are additive and unread here.
 - **Streams and stream-dependent metrics** (SUB-004), **FitDays/scale ingestion** (SCALE-001).
 - **PostgreSQL-specific tuning.** Dev and tests are SQLite; the guarded UPSERT is chosen because both

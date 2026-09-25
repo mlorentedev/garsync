@@ -103,7 +103,7 @@ changes **zero**; a re-pull from a payload that lacks the derived numbers leaves
 - [ ] Declared in the PR body: executable-LOC breakdown, the `raw_payload` deviation from `ticket-plan` §3, and the canonical-serialisation landing cost
 - [ ] PR opened with `Closes #83`, then every reviewer comment dispositioned in a `## Review triage` comment (`dotf pr triage-queue` exit 0 before claiming complete)
 - [ ] `/adversarial-review SUB-002` proposed in the verification window (never self-served; not the implementing model)
-- [ ] Filed separately, not ridden along: `SYNC-001-in-process-scheduler` (Q3), the `sync_log` retirement, and M8/M9 for the next network window
+- [x] Filed separately, not ridden along: [#121](https://github.com/mlorentedev/garsync/issues/121) SYNC-001 (Q3) and [#122](https://github.com/mlorentedev/garsync/issues/122) the `sync_log` drop; M8/M9 ride on #83 as its measurements (the M4-in-SCALE-001 convention) and stay **blocked** at Garmin's edge until the next network window
 
 ## Machine-readable features
 
