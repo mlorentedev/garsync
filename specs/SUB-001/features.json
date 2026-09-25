@@ -1,0 +1,44 @@
+[
+  {
+    "id": "SUB-001-f1",
+    "behavior": "AC1 — Alembic is the only schema creator and runs on the caller's connection: a fresh database and a migrated v1 fixture have equal sqlite_master, alembic_version holds head, schema_version is gone, a second upgrade head is a no-op, and the drift assertion holds.",
+    "verification": "poetry run pytest tests/test_migrations.py::TestAlembicSeam -q",
+    "state": "pending",
+    "evidence": ""
+  },
+  {
+    "id": "SUB-001-f2",
+    "behavior": "AC2 — No row is lost and the readers moved with the writers: v1 rows survive with identical values, the 9 sync_log rows are flagged source='legacy' in ingest_run and remain in the inert legacy table, and /api/sync/status reports them by value and increments after a pipeline run.",
+    "verification": "poetry run pytest tests/test_migrations.py::TestRowPreservation tests/api/test_sync_status.py -q",
+    "state": "pending",
+    "evidence": ""
+  },
+  {
+    "id": "SUB-001-f3",
+    "behavior": "AC3 — Timestamps are UTC with an exact per-row offset and no assumed zone: both offsets the real data contains (-420, -480) and a synthetic DST transition date match hand-computed values, the original local string survives in raw_data, and a row without startTimeGMT aborts naming the row ids unless GARSYNC_TZ is explicitly set.",
+    "verification": "poetry run pytest tests/test_migrations.py::TestTimezoneNormalisation -q",
+    "state": "pending",
+    "evidence": ""
+  },
+  {
+    "id": "SUB-001-f4",
+    "behavior": "AC4 — Provenance and gaps are explicit: source='garmin' on all activities, UNIQUE(source, source_id) enforced with a re-run as a no-op, hrv_baseline_status retains the legacy string verbatim with numeric HRV columns NULL, and the derived columns are filled only where the payload carries them with a queryable gap count.",
+    "verification": "poetry run pytest tests/test_migrations.py::TestProvenanceAndGaps -q",
+    "state": "pending",
+    "evidence": ""
+  },
+  {
+    "id": "SUB-001-f5",
+    "behavior": "AC5 — goals exists keyed by valid_from and nothing speculative was added: no activity_streams, no raw_payload, no metric_registry, no nutrition table, no derived_daily.",
+    "verification": "poetry run pytest tests/test_migrations.py::TestGoalsAndNoSpeculativeTables -q",
+    "state": "pending",
+    "evidence": ""
+  },
+  {
+    "id": "SUB-001-f6",
+    "behavior": "AC6 — The HTTP contract is frozen and the gate is green: the existing route tests pass unmodified while reading the renamed tables, the automated backup artifact exists before the first revision touches a file, the real-database rehearsal ran against a copy that left the original byte-identical, and make check passes with the coverage baseline raised in the same commit.",
+    "verification": "poetry run pytest tests/test_migrations.py::TestRealDatabaseRehearsal -q -m integration",
+    "state": "pending",
+    "evidence": ""
+  }
+]
