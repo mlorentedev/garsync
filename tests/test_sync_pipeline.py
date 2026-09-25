@@ -14,8 +14,8 @@ from garsync.client import GarminClient
 from garsync.db import (
     ActivityRepository,
     BiometricsRepository,
+    IngestRunRepository,
     SleepRepository,
-    SyncLogRepository,
     get_connection,
 )
 from garsync.models import DailyBiometrics, NormalizedActivity, SleepData
@@ -93,7 +93,7 @@ class TestConverterFunctions:
     def test_sleep_to_row(self, mock_sleep: SleepData) -> None:
         row = sleep_to_row(mock_sleep)
         assert row["date"] == "2026-02-28"
-        assert row["sleep_start"] == "2026-02-27T23:00:00+00:00"
+        assert row["sleep_start"] == "2026-02-27T23:00:00Z"
         assert row["sleep_score"] == 85
 
     def test_sleep_to_row_with_nulls(self) -> None:
@@ -185,7 +185,7 @@ class TestSyncPipelineDB:
             assert ActivityRepository(conn).count() == 1
             assert BiometricsRepository(conn).count() == 1
             assert SleepRepository(conn).count() == 1
-            assert SyncLogRepository(conn).count() >= 3  # activities + bio + sleep
+            assert IngestRunRepository(conn).count() >= 3  # activities + bio + sleep
             conn.close()
 
     def test_json_output_still_works(
@@ -264,7 +264,7 @@ class TestSyncPipelineDB:
             assert BiometricsRepository(conn).count() == 0
             assert SleepRepository(conn).count() == 1
             # Should have an error log entry for biometrics
-            log_entries = SyncLogRepository(conn).get_all()
+            log_entries = IngestRunRepository(conn).get_all()
             error_entries = [e for e in log_entries if e["status"] == "error"]
             assert len(error_entries) >= 1
             conn.close()

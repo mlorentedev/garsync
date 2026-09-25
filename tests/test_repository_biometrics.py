@@ -17,7 +17,7 @@ class TestBiometricsRepository:
         repo.upsert(sample_biometrics_row)
 
         row = in_memory_db.execute(
-            "SELECT * FROM biometrics WHERE date = ?",
+            "SELECT * FROM daily_metrics WHERE date = ?",
             (sample_biometrics_row["date"],),
         ).fetchone()
         assert row is not None

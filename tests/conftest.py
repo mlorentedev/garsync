@@ -23,25 +23,37 @@ def sample_activity_row() -> dict:
     """A single activity row dict matching the activities table columns."""
     return {
         "activity_id": 123456789,
+        "source": "garmin",
+        "source_id": "123456789",
         "activity_name": "Morning Run",
         "activity_type": "running",
-        "start_time": "2026-02-28T07:30:00",
+        "start_time": "2026-02-28T07:30:00Z",
+        "tz_offset_minutes": 60,
         "duration_seconds": 1800.0,
         "distance_meters": 5000.0,
         "average_heart_rate": 145,
         "max_heart_rate": 172,
         "calories": 350.0,
+        "training_load": None,
+        "aerobic_te": 3.2,
+        "anaerobic_te": 0.8,
+        "normalized_power": None,
+        "avg_power": None,
         "raw_data": json.dumps({"activityId": 123456789, "source": "test"}),
     }
 
 
 @pytest.fixture()
 def sample_biometrics_row() -> dict:
-    """A single biometrics row dict matching the biometrics table columns."""
+    """A single daily-metrics row dict matching the daily_metrics columns.
+
+    Keyed on the storage column name, because that is what the repository writes; the API-facing
+    name is `hrv_balance`, and the repository aliases it back on read.
+    """
     return {
         "date": "2026-02-28",
         "resting_heart_rate": 52,
-        "hrv_balance": "BALANCED",
+        "hrv_baseline_status": "BALANCED",
         "body_battery_highest": 95,
         "body_battery_lowest": 22,
         "stress_average": 28,

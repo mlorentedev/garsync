@@ -1,0 +1,197 @@
+---
+id: "SUB-001"
+type: spec
+status: draft # draft | implementing | verifying | archived
+created: "2026-09-24"
+issue: "mlorentedev/garsync#82"   # repo#NNN — GitHub issue / Project item that tracks this spec
+tags: [spec, proposal, schema, migrations, alembic, sqlite]
+template_version: "1.0"
+---
+
+# SUB-001 — Schema evolution: Alembic, and the v1→v2 migration
+
+> **Naming**: file lives at `<repo>/specs/SUB-001/proposal.md`. `SUB-001` is `AREA-NNN-slug`.
+
+## Why
+
+`src/garsync/db/schema.py` has no migration mechanism: `init_db` either sees `schema_version == 1`
+and returns, or runs the whole `_SCHEMA_V1` script. There is no path from v1 to v2, and every
+remaining ticket in the plan is a schema change — streams, a numeric HRV series, weight and
+algorithm-tagged body composition, an ingest ledger, `derived_daily`, `goals` — several of which must
+land on a database that already holds history. Without this, each of those tickets either duplicates
+the DDL in a second SSOT or invents its own ad-hoc upgrade.
+
+Two defects in the current data model make the same work load-bearing rather than mechanical, and both
+are silent: activities are stored from a **naive local** `startTimeLocal` while sleep is stored from a
+**UTC epoch** (`client.py:87` vs `client.py:108`, ADR-008 §11), so every sleep-versus-training
+correlation the metric layer exists to compute would be shifted by hours; and no row carries its
+provenance, so a second source (the FitDays scale, SCALE-001) cannot coexist with Garmin without
+colliding on natural keys.
+
+`Why` is fully determined by [#82](https://github.com/mlorentedev/garsync/issues/82), ADR-009 and
+`docs/architecture/target-architecture-v2.md` §4.1.
+
+## What
+
+After this PR the database evolves through **Alembic**, and a v1 database upgrades to v2 without data
+loss or hand-editing:
+
+1. **One schema creator.** `alembic upgrade head` creates the schema; a fresh database and a migrated
+   v1 database are byte-identical in structure. `_SCHEMA_V1` / `schema_version` stop being a second
+   SSOT, and `init_db` — called from `cli.py:65`, `api/main.py:42` and `tests/conftest.py:16` —
+   becomes a call into the migration chain.
+2. **A reversible-per-column timestamp normalisation that is exact, not inferred.** Every
+   `activities.start_time` is stored in UTC with `tz_offset_minutes`, derived per row from the payload
+   (`startTimeGMT`), and the original local string stays inside `raw_data`. Measured on the real
+   database: `startTimeGMT` agrees with `beginTimestamp` in **100/100** rows and the offsets
+   **vary per row** (`-480` on 5 rows, `-420` on 95), so the offset is read, never guessed from a
+   configured zone.
+3. **Provenance and gaps, stated separately.** `activities` gains `source` (backfilled `'garmin'`) and
+   a `UNIQUE(source, source_id)` natural key; `biometrics` → `daily_metrics` keeps `hrv_balance`
+   verbatim as `hrv_baseline_status` with the numeric HRV columns born NULL; `sleep` →
+   `sleep_sessions`; `sync_log` → `ingest_run` with the legacy rows flagged and the old table left
+   read-only for one release; `goals` is added. Every backfilled column either has a payload source or
+   is reported as a gap — nothing is invented.
+
+## Out of scope
+
+- **Every other v2 table.** `activity_streams` (SUB-004), `raw_payload` and `ingest_run`'s cursors,
+  atomicity and idempotency contract (SUB-002), `derived_daily` / `targets` / `metric_registry` /
+  `recommendation_log` (Block C, MET-001+), `auth_audit` (SEC-002), the weight and body-composition
+  tables (SCALE-001), nutrition (SC-01: no tables at all).
+- **Refetching anything.** Derived columns are re-read from the retained `raw_data` only where the
+  payload actually carries them; a field the payload never held stays NULL. Fetching by date range
+  with pagination and backfill is SUB-003 — and `training_load` backfill is exactly the case that
+  shows why the split matters (see R7).
+- **Postgres-specific work**, and the double-engine dialect test ADR-009's consequences ask for: there
+  is no Postgres instance in the MVP yet, and the migration-ownership question with kubelab is still
+  open. This PR stays SQLite-only and dialect-agnostic in the repository layer.
+- **Renaming the HTTP surface.** `/api/biometrics`, `/api/sleep` and `/api/sync/status` keep their
+  paths and response shapes; only the storage layer and the repository internals are renamed. A path
+  rename is a separate, reviewable change in the UI block.
+
+## Risks / open questions
+
+R1, R2, R3 and the two migration mechanics below were ruled on 2026-09-24 after a one-off independent
+advisory pass whose brief was to refute them; two of its objections were verified against the code and
+the data and are folded in (`R2`, `R3`), and one changed the mechanic (`R6`). Where a ruling departs
+from the design document, it says so.
+
+- **R1 — Alembic style, and what it costs. [ruled]** ADR-009 names *autogenerated diffs* as a reason
+  to adopt SQLAlchemy + Alembic, but the same option explicitly permits "an ORM-free `Core` style that
+  keeps the current repository layer". Declarative models would add a third description of one schema
+  (models, revision, DDL) beside the raw `sqlite3` repository.
+  → **Ruled: hand-written revisions using Core ops (`op.create_table`, `op.add_column`) — never raw
+  `ALTER` strings; SQLAlchemy enters only as Alembic's dependency; no declarative models.** The cost is
+  real and is recorded rather than glossed: `alembic autogenerate` is forgone **permanently**, and
+  Block C then lands five tables across several PRs with no drift detector between the migrated schema
+  and the repository SQL. The substitute is the drift assertion in AC1 (`sqlite_master` vs an expected
+  schema), which is cheap and catches the same class of error. Recorded in the PR body.
+- **R2 — Who switches the write path. [ruled, and wider than first scoped]** Once `sync_log` is
+  declared read-only, `pipeline.py` (7 call sites) writes into a table it may no longer write to — but
+  the write path is not the only one that moves. The single reader is
+  `api/routes/sync.py` (`total_sync_logs=sync_log_repo.count()`), and `SyncLogRepository.count()` reads
+  `sync_log` directly. **Moving only the writer freezes `/api/sync/status` at 9 forever, and AC6's
+  "existing route tests pass unmodified" would not catch it, because a frozen 9 satisfies a test that
+  asserts a type and not a value.**
+  → **Ruled: `ingest_run` is created in SUB-001 with the legacy columns plus `source`;
+  `SyncLogRepository` — writer *and* reader — moves to it in one commit, with `sync_type`→`source`
+  renamed inside the same methods; the legacy table stays in place, inert. Cursors, one transaction per
+  run and `rows_upserted` semantics stay in SUB-002.** Between the two tickets `ingest_run` is written
+  with cursors NULL and nothing derives meaning from it, which is defensible only because both its
+  writer and its reader exist — the standard ADR-009 §9 sets for `nutrition_entries`.
+- **R3 — `GARSYNC_TZ` as a *default* is refuted by the data. [ruled]** ADR-008 §11 names `GARSYNC_TZ`
+  for daily rollups and §4.1 names it as the fallback offset, and the first draft of this spec proposed
+  `Europe/Madrid` as its default. The data refuses that: all 100 activities carry Garmin `timeZoneId`
+  **153** (95 rows, offset `-420`) and **121** (5 rows, offset `-480`) — US Mountain/Pacific, not
+  Madrid. A Madrid default applied to a payload without `startTimeGMT` would be ~8 hours wrong **on this
+  history**, and no fixture would catch it, because the fixture would encode the same false assumption.
+  → **Ruled: the offset is derived per row from the payload, always; there is no default zone anywhere
+  in the codebase. A row that lacks `startTimeGMT` takes `GARSYNC_TZ` only if it is explicitly set, and
+  otherwise the migration aborts naming the offending row ids.** `GARSYNC_TZ` survives for MET-001's
+  rollup boundary, where it governs future calendar days rather than historical rows. There is no
+  config module in this PR beyond that one explicitly-set lookup.
+- **R4 — "Years of history" is not what is on disk. [ruled]** §4.1 justifies the rehearsal with "an
+  underspecified migration over years of history". Measured: `data/garsync.db` spans
+  **2026-01-10 → 2026-03-01** — 100 activities, 4 biometrics rows, 4 sleep rows, 9 `sync_log` rows.
+  The real history lives in Garmin's cloud, not on this disk.
+  → **Ruled: keep the copy-first rehearsal, but scope the test to what the data can actually prove**
+  (the transformation, the key constraint, the renames) and let SUB-003's backfill carry the volume
+  risk. Do not write the migration *for* a volume that is not there.
+- **R5 — The migration touches the only copy, and there is no backup automation.** §4.1 says "a backup
+  is taken before the migration runs" — a rule that is currently a manual instruction, which is
+  exactly what this repository's standing orders forbid.
+  → **Ruled: a `make` target that takes a `VACUUM INTO` snapshot with a timestamped filename,
+  invoked by the upgrade path before the first revision touches a file, and asserted by the test.**
+  (The separate daily-backup item stays out of scope.)
+- **R6 — SQLite cannot alter a column, and a rebuild is where a half-migrated file comes from.**
+  `activities` needs new columns *and* a `UNIQUE` constraint that did not exist, which means a
+  table copy; a crash mid-copy leaves a database that is neither v1 nor v2.
+  → **Ruled: `op.batch_alter_table` (its recreate path is exactly this rebuild, and v1 has no foreign
+  keys to rewrite) rather than a hand-rolled temp-table dance; one transaction per revision;
+  `PRAGMA foreign_keys=OFF` issued *before* the transaction opens, since inside one it is a silent
+  no-op; and a post-upgrade assertion (`PRAGMA integrity_check`, `PRAGMA foreign_key_check`, row
+  counts) that fails the upgrade rather than reporting a warning.** `downgrade()` is implemented for
+  the renames and additive columns and tested, but production stays forward-only per §4.1.
+- **R7 — The derived-column backfill mostly cannot happen, and that is a finding, not a bug.**
+  Measured over the 100 real payloads: `aerobicTrainingEffect` and `anaerobicTrainingEffect` are
+  present in **100/100**, `vO2MaxValue` in **37/100**, but `activityTrainingLoad` in **2/100** — the
+  list endpoint the ingester calls does not carry it for most activities. MET-001 plans to use
+  `activityTrainingLoad` as a cross-check beside its own `hrTSS`.
+  → **Ruled: backfill where it exists (2 rows), store NULL elsewhere, and expose a queryable gap
+  count.** The metric layer then knows its cross-check covers 2% of history rather than discovering it
+  later.
+- **R8 — A register ambiguity to resolve, not to code around.** ADR-009 §4 mandates a
+  `metric_registry` table; §9 says "the MVP's schema additions are `goals` and nothing else
+  speculative".
+  → **Ruled: `metric_registry` is not created here; MET-001 owns it, and the gap is filed as
+  [#114](https://github.com/mlorentedev/garsync/issues/114) rather than resolved inside a migration.**
+  Review while writing this spec widened the finding: the design's §4 table list carries no owner per
+  row, and `auth_audit` is unowned in the same way — mandated in §4 and named in no ADR and no issue.
+  Not a blocker for this PR.
+
+## Acceptance criteria
+
+- [ ] **AC1 — One schema creator, wired to the caller's connection.** A fresh database and a migrated
+  v1 fixture have identical `sqlite_master`; `alembic_version` holds the head revision; `schema_version`
+  no longer exists; and `init_db` at all three call sites (`cli.py`, `api/main.py`, both `conftest.py`
+  files) reaches the same chain through `alembic upgrade head` **on the connection it was handed** —
+  `env.py` takes a caller-supplied connection and never falls back to its own URL, because the fixtures
+  build a `:memory:` database, where a second connection is a second empty database. A running
+  `upgrade head` a second time is a no-op. A drift assertion compares `sqlite_master` against the
+  expected schema, standing in for the `autogenerate` this project forgoes (R1).
+- [ ] **AC2 — No row is lost, and the readers move with the writers.** On a v1 fixture, every
+  `activities`, `biometrics` and `sleep` row survives with identical non-transformed column values; all
+  9 `sync_log` rows exist in `ingest_run` flagged `source='legacy'` **and** still exist in the inert
+  legacy table. `/api/sync/status` reports those 9 rows **by value**, and the count **increases** after
+  a pipeline run — the assertion must fail if the reader was left on the old table (R2).
+- [ ] **AC3 — Timestamps are UTC, with an exact per-row offset and no assumed zone.** After migration
+  every `activities.start_time` is UTC, `tz_offset_minutes` is populated per row, and the original local
+  string survives in `raw_data`. A fixture with a hand-computed expected value asserts it, covering
+  **both offsets the real data contains** (`-420` and `-480`) plus a DST-transition date; today's real
+  range contains no transition, so that case is synthetic. A row whose payload lacks `startTimeGMT`
+  takes the fallback **only** when `GARSYNC_TZ` is explicitly set, and otherwise aborts the migration
+  naming the offending row ids — there is no default zone (R3).
+- [ ] **AC4 — Provenance and gaps are explicit.** `source='garmin'` on all 100 activities;
+  `UNIQUE(source, source_id)` is enforced (a duplicate insert fails, and a re-run is a no-op);
+  `hrv_baseline_status` retains the legacy string verbatim while the numeric HRV columns are NULL;
+  derived columns are filled only where the payload carries them and a query reports the gap count
+  (expected today: `training_load` 2/100, `v2max` 37/100, the two training-effect columns 100/100).
+- [ ] **AC5 — `goals` and nothing speculative.** `goals` exists keyed by `valid_from`; the schema
+  contains no `activity_streams`, no `raw_payload`, no `metric_registry` (its missing owner is
+  [#114](https://github.com/mlorentedev/garsync/issues/114)), no nutrition table and no
+  `derived_daily`.
+- [ ] **AC6 — The HTTP contract is frozen and the gate is green.** `/api/biometrics`, `/api/sleep` and
+  `/api/sync/status` pass their existing route tests **unmodified** while reading the renamed tables;
+  the real `data/garsync.db` rehearsal ran against a copy with a timestamped backup artifact produced
+  by the automated target; `make check` passes with `.coverage-baseline` raised to the value measured
+  in the same commit.
+
+## References
+
+- Bitácora: [garsync#82](https://github.com/mlorentedev/garsync/issues/82) (the `issue:` frontmatter field)
+- Related ADRs: [`docs/adr/adr-009-data-substrate-and-migrations.md`](../../docs/adr/adr-009-data-substrate-and-migrations.md) (SQLAlchemy + Alembic, units, `goals`), [`docs/adr/adr-008-ingestion-ledger-and-adapters.md`](../../docs/adr/adr-008-ingestion-ledger-and-adapters.md) §11 (UTC at rest, `tz_offset_minutes`, `GARSYNC_TZ`)
+- Design of record: [`docs/architecture/target-architecture-v2.md`](../../docs/architecture/target-architecture-v2.md) §4 (data model), §4.1 (this migration), §5 (retention rules)
+- Ticket plan: [`docs/architecture/ticket-plan.md`](../../docs/architecture/ticket-plan.md) §3 Block B
+- Evidence used above was measured in this session against `data/garsync.db` (100 activities, `timeZoneId` 153/121, offsets `-420`/`-480`, `startTimeGMT` in 100/100 rows, `activityTrainingLoad` 2/100, span 2026-01-10 → 2026-03-01) and is reproduced in `verification.md`.
+- Ruled out of scope and filed: [#114](https://github.com/mlorentedev/garsync/issues/114) — the v2 table list has no owner per row (`metric_registry`, `auth_audit`).

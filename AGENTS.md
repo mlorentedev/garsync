@@ -31,7 +31,7 @@ the decision register is
 | `src/garsync/cli.py` | Typer entry point — orchestration only; sync logic lives in `pipeline.py` |
 | `src/garsync/pipeline.py` | `SyncService` — Garmin fetch → normalise → upsert |
 | `src/garsync/client.py` | Garmin client (token caching, login fallback, retries) |
-| `src/garsync/db/` | `schema.py` (DDL + `schema_version`), `connection.py`, `repository.py` (the only SQL layer) |
+| `src/garsync/db/` | `schema.py` (runs the Alembic chain on the caller's connection), `migrations/` (the DDL, as revisions), `backup.py` (pre-migration snapshot), `connection.py`, `repository.py` (the only SQL layer) |
 | `src/garsync/api/` | FastAPI app factory, `auth.py` (session gate, rate limiter), `routes/` |
 | `frontend/src/components/` | Dashboard islands (`Heatmap`, `TrendChart`, `KpiCards`, …) |
 | `frontend/src/lib/api.ts` | Fetch wrappers; **no credentials in the client** |
@@ -50,6 +50,7 @@ make setup            # Bootstrap Poetry venv + frontend node_modules
 make check            # The gate: lint + type + test + frontend check/build (CI runs the same)
 make dev              # API on :8000 + Astro dev server on :4321
 make sync DAYS=7      # Garmin ingest (needs the SOPS age key)
+make db-backup        # Snapshot the database before a migration rewrites it
 make smoke            # E2E smoke: API endpoints + frontend build (needs data/garsync.db)
 make format           # ruff --fix + ruff format
 ```
@@ -68,6 +69,12 @@ Full index: [`docs/adr/`](docs/adr/) (docs-as-code; the directory is the index).
 - **ADR-007…013** accepted: purpose-built single-user platform · ingestion ledger and adapters ·
   storage substrate and migrations · access and sharing · deployment topology · scale integration
   route · analytics and recommendation discipline.
+
+**The schema is owned by Alembic.** `src/garsync/db/migrations/` holds the only DDL: `schema.py`
+runs the chain on the connection it is handed and takes a snapshot first when a migration is pending.
+A migration is never a `sqlalchemy.url` away — the chain has no URL, because a connection Alembic
+opens itself is a different database from the caller's (and for the `:memory:` fixtures, an empty
+one).
 
 ## Documentation & Knowledge Placement
 
