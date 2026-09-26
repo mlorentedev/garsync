@@ -2,6 +2,7 @@
 
 import logging
 import sqlite3
+from collections.abc import Callable
 from datetime import UTC, date, datetime
 from typing import Any
 
@@ -12,7 +13,9 @@ from garsync.db import (
     IngestRunRepository,
     SleepRepository,
 )
+from garsync.db.connection import transaction
 from garsync.ingest.payload import canonical_json
+from garsync.ingest.window import CLASSES, Window, resolve_window
 from garsync.models import DailyBiometrics, NormalizedActivity, SleepData
 from garsync.timeutil import offset_minutes, parse_garmin_timestamp, utc_z
 
@@ -23,13 +26,10 @@ logger = logging.getLogger(__name__)
 GARMIN = "garmin"
 
 
-def _now_z() -> str:
-    """The instant a run began, in the at-rest spelling.
-
-    Captured **before** the fetch, never at the ledger write: `created_at` is the commit instant (the
-    finish), so a `started_at` taken at log time would silently measure the write's own latency.
-    """
-    return utc_z(datetime.now(UTC))
+def _utc_now() -> datetime:
+    """The default clock. Injectable, because a run's window is derived from this instant — and the
+    instant a run *began* is what `started_at` records."""
+    return datetime.now(UTC)
 
 
 def _tally(results: dict[str, int], key: str, outcome: int | None) -> None:
@@ -116,97 +116,174 @@ def sleep_to_row(sleep: SleepData) -> dict[str, Any]:
 class SyncService:
     """Orchestrates the synchronization process between Garmin and SQLite."""
 
-    def __init__(self, client: GarminClient, db_conn: sqlite3.Connection):
+    def __init__(
+        self,
+        client: GarminClient,
+        db_conn: sqlite3.Connection,
+        *,
+        now: Callable[[], datetime] = _utc_now,
+    ) -> None:
         self.client = client
         self.db_conn = db_conn
+        #: The run's clock, injected. A run derives its window from `now` and records that same instant
+        #: as `started_at`, so the two cannot disagree — and a test can pin a window without patching a
+        #: module's globals.
+        self._now = now
         self.activity_repo = ActivityRepository(db_conn)
         self.biometrics_repo = BiometricsRepository(db_conn)
         self.sleep_repo = SleepRepository(db_conn)
         self.ingest_run_repo = IngestRunRepository(db_conn)
 
     def sync_range(self, dates: list[date], activities_limit: int = 100) -> dict[str, int]:
-        """Run a full sync for the given range of dates.
+        """Run one ingest per data class, and report what each one saw.
 
-        Orchestration only. Each data class is a run, and a run answers with what it fetched or with
-        `None` when it failed; the ledger row is written inside the run, never here. The grain of the
-        daily classes is still one row per day rather than one per covered window — that is SUB-002
-        block 5, which replaces these bodies with the transaction-and-cursor run; what changed here is
-        that the ledger counts what the adapter returned instead of what it fetched.
+        Three runs, three ledger rows — the grain D1 ratifies: `(source, sync_type)` is the unit, not
+        the calendar day. `dates` says how far back a run may reach (its **floor**); the window it
+        actually covers comes from that floor and the class's watermark. The caller's list of days is
+        deliberately not the source of coverage, because "the last record I saw" is the cursor this
+        spec exists to replace. A stale watermark therefore moves the left edge earlier and the gap
+        closes one floor-sized chunk per run (`resolve_window`'s `end_effective`), which bounds the
+        daily run at ≈71 calls instead of letting a backfill open with a year of requests.
         """
         results: dict[str, int] = {"activities": 0, "biometrics": 0, "sleep": 0, "errors": 0}
+        trailing_days = max(len(dates), 1)
 
-        _tally(results, "activities", self._sync_activities(activities_limit))
-        for day in dates:
-            _tally(results, "biometrics", self._sync_biometrics(day))
-            _tally(results, "sleep", self._sync_sleep(day))
+        _tally(results, "activities", self._run_activities(trailing_days, activities_limit))
+        _tally(
+            results,
+            "biometrics",
+            self._run_daily(
+                "daily_metrics",
+                trailing_days,
+                self.client.fetch_biometrics,
+                biometrics_to_row,
+                self.biometrics_repo.upsert,
+            ),
+        )
+        _tally(
+            results,
+            "sleep",
+            self._run_daily(
+                "sleep",
+                trailing_days,
+                self.client.fetch_sleep,
+                sleep_to_row,
+                self.sleep_repo.upsert,
+            ),
+        )
         return results
 
-    def _sync_activities(self, activities_limit: int) -> int | None:
-        """One run of the activities class. Returns what the adapter fetched, or None on failure.
+    def _run_activities(self, trailing_days: int, limit: int) -> int | None:
+        """The activities run, whose fetch is `limit`-based — which is why it claims no cursor (Q4)."""
+        return self._run(
+            "activities",
+            trailing_days,
+            lambda _window: [
+                activity_to_row(activity) for activity in self.client.fetch_activities(limit=limit)
+            ],
+            self.activity_repo.upsert,
+        )
 
-        `rows_upserted` is the summed change count of the guarded upserts, so a re-pull over a covered
-        window records 0 while `rows_fetched` still records the 100 rows Garmin returned (AC7). Before
-        this, both columns carried the fetched count — the number that made "zero changed values"
-        unauditable.
+    def _run_daily(
+        self,
+        sync_type: str,
+        trailing_days: int,
+        fetch_day: Callable[[date], Any],
+        to_row: Callable[[Any], dict[str, Any]],
+        upsert: Callable[[dict[str, Any]], int],
+    ) -> int | None:
+        """One daily class: the window's days are fetched one per unit and written as one run."""
+        return self._run(
+            sync_type,
+            trailing_days,
+            lambda window: [to_row(fetch_day(day)) for day in window.days()],
+            upsert,
+        )
+
+    def _run(
+        self,
+        sync_type: str,
+        trailing_days: int,
+        fetch: Callable[[Window], list[dict[str, Any]]],
+        upsert: Callable[[dict[str, Any]], int],
+    ) -> int | None:
+        """One run of one class: window, fetch, transaction, ledger row — in that order.
+
+        The order *is* the contract, and each step is a separate assertion:
+
+        * the window is resolved **before** the fetch, so a run can never claim coverage past the
+          instant it started with (D1, and the reason `started_at` is the same instant);
+        * the fetch runs with **no transaction open** (AC5): `BEGIN IMMEDIATE` takes the write lock for
+          the whole daily window's ≈71 HTTP calls if it is opened first;
+        * every write and the `success` row share **one commit** (AC1), so a reader sees the data and
+          its ledger row together or not at all;
+        * a failure writes its `error` row afterwards, in its own unit, and never a cursor.
         """
-        started_at = _now_z()
+        instant = self._now()
+        started_at = utc_z(instant)
+        window = resolve_window(
+            sync_type,
+            instant,
+            self.ingest_run_repo.last_cursor(GARMIN, sync_type),
+            trailing_days=trailing_days,
+        )
         try:
-            activities = self.client.fetch_activities(limit=activities_limit)
-            changed = sum(
-                self.activity_repo.upsert(activity_to_row(activity)) for activity in activities
-            )
-            self.ingest_run_repo.log(
-                "activities", changed, rows_fetched=len(activities), started_at=started_at
-            )
-            return len(activities)
-        except Exception as e:  # noqa: BLE001
-            logger.error(f"Failed to sync activities: {e}")
-            self.ingest_run_repo.log(
-                "activities", 0, "error", str(e), rows_fetched=0, started_at=started_at
-            )
+            rows = fetch(window)
+        except Exception as error:  # noqa: BLE001
+            logger.error(f"{sync_type}: the fetch failed, so nothing was written: {error}")
+            self._record_failure(sync_type, started_at, 0, error)
             return None
-
-    def _sync_biometrics(self, day: date) -> int | None:
-        """One day's biometrics run: the four endpoints behind one call, one row, one ledger entry."""
-        date_str = day.isoformat()
-        started_at = _now_z()
         try:
-            bio = self.client.fetch_biometrics(day)
-            changed = self.biometrics_repo.upsert(biometrics_to_row(bio))
-            self.ingest_run_repo.log("biometrics", changed, rows_fetched=1, started_at=started_at)
-            return 1
-        except Exception as e:  # noqa: BLE001
-            logger.warning(f"Failed to sync biometrics for {date_str}: {e}")
+            with transaction(self.db_conn):
+                changed = sum(upsert(row) for row in rows)
+                self._record_success(sync_type, window, started_at, len(rows), changed)
+        except Exception as error:  # noqa: BLE001
+            logger.error(f"{sync_type}: the run rolled back: {error}")
+            self._record_failure(sync_type, started_at, len(rows), error)
+            return None
+        return len(rows)
+
+    def _record_success(
+        self,
+        sync_type: str,
+        window: Window,
+        started_at: str,
+        fetched: int,
+        changed: int,
+    ) -> None:
+        """Write the run's ledger row **inside** its transaction (`transaction()` is the caller's).
+
+        The coverage claim is taken from the class table, not from an `if` here: activities are fetched
+        by `limit`, so their row says what arrived and claims no window (Q4).
+        """
+        claims = CLASSES[sync_type].claims_cursor
+        self.ingest_run_repo.log(
+            sync_type,
+            changed,
+            rows_fetched=fetched,
+            started_at=started_at,
+            cursor_before=window.start if claims else None,
+            cursor_after=window.covered_through if claims else None,
+        )
+
+    def _record_failure(
+        self, sync_type: str, started_at: str, fetched: int, error: Exception
+    ) -> None:
+        """One error row, committed after the rollback, in a transaction of its own (AC1, SC-10).
+
+        SC-10 alarms on the **absence** of a success row, so the failure has to survive the rollback it
+        describes — and it carries what the run genuinely knew (that it asked, and how much arrived)
+        while claiming no coverage: a rolled-back window was not covered, whatever arrived.
+        """
+        with transaction(self.db_conn):
             self.ingest_run_repo.log(
-                "biometrics",
+                sync_type,
                 0,
                 "error",
-                f"{date_str}: {e}",
-                rows_fetched=0,
+                str(error),
+                rows_fetched=fetched,
                 started_at=started_at,
             )
-            return None
-
-    def _sync_sleep(self, day: date) -> int | None:
-        """One night's sleep run. A night that is not published yet is an error row, not a zero."""
-        date_str = day.isoformat()
-        started_at = _now_z()
-        try:
-            sleep = self.client.fetch_sleep(day)
-            changed = self.sleep_repo.upsert(sleep_to_row(sleep))
-            self.ingest_run_repo.log("sleep", changed, rows_fetched=1, started_at=started_at)
-            return 1
-        except Exception as e:  # noqa: BLE001
-            logger.warning(f"Failed to sync sleep for {date_str}: {e}")
-            self.ingest_run_repo.log(
-                "sleep",
-                0,
-                "error",
-                f"{date_str}: {e}",
-                rows_fetched=0,
-                started_at=started_at,
-            )
-            return None
 
     def get_latest_synced_date(self) -> str | None:
         """Get the most recent date present in the biometrics table."""

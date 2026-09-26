@@ -481,6 +481,32 @@ class IngestRunRepository:
             ),
         )
 
+    def last_cursor(self, source: str, sync_type: str) -> str | None:
+        """The class's coverage watermark: `cursor_after` of its newest **successful** ledger row.
+
+        Three rules the naive query gets wrong, each asserted in `TestCursors`:
+
+        * ordered by `id`, never `created_at` — ADR-008 §8 measured two logical states sharing one
+          timestamp, so an ordering that reads it is a coin flip;
+        * filtered on `status = 'success'` — an error row that carries a cursor would claim coverage
+          for a run whose data was rolled back out of the database;
+        * keyed on `(source, sync_type)` — the axis D1 defines, so a scale's watermark is never read as
+          Garmin's, and a night's never as a day's.
+
+        `None` means no successful run has ever covered this class — not the same fact as a cursor at
+        the epoch: the caller's trailing floor decides where the first run starts.
+        """
+        row = self._conn.execute(
+            "SELECT cursor_after FROM ingest_run "
+            "WHERE source = ? AND sync_type = ? AND status = 'success' "
+            "ORDER BY id DESC LIMIT 1",
+            (source, sync_type),
+        ).fetchone()
+        if row is None:
+            return None
+        cursor: str | None = row["cursor_after"]
+        return cursor
+
     def get_latest(self, sync_type: str | None = None) -> sqlite3.Row | None:
         """Get the most recent ingest run, optionally filtered by data class."""
         if sync_type:

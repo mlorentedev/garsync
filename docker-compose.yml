@@ -12,6 +12,11 @@ services:
       - ./data:/app/data
     environment:
       - GARSYNC_DB_PATH=/app/data/garsync.db
+      # The container's clock is UTC; the *data's* calendar day is not. The daily classes key their
+      # coverage window to a configured zone and refuse to guess one (ADR-008 §11, and since SUB-002 so
+      # does every run), so compose fails closed here rather than letting a sync claim yesterday's
+      # coverage because the host happened to be UTC.
+      - GARSYNC_TZ=${GARSYNC_TZ:?GARSYNC_TZ is required: the zone whose calendar day the daily classes cover}
       - TZ=UTC
     labels:
       com.garsync.description: "Garmin Sync Pipeline and Dashboard"

@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from garsync.ingest.window import (
+    MIN_CHUNK_UNITS,
     TRAILING_DAYS,
     Window,
     resolve_window,
@@ -223,3 +224,84 @@ def test_the_window_is_immutable() -> None:
     assert isinstance(window, Window)
     with pytest.raises(FrozenInstanceError):
         window.start = "2026-01-01"  # type: ignore[misc]
+
+
+def test_a_one_unit_floor_could_otherwise_stall_forever(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The chunking's degenerate case, found by driving it from a run (SUB-002 block 5).
+
+    A gap-closing chunk re-covers the cursor's own unit — that re-cover is how a morning revision
+    lands — so a chunk of exactly one unit covers a day it already had and reports the *same*
+    `cursor_after`. Repeated, the watermark never moves: the ledger would say "covered through D"
+    forever while today's data went unfetched, and every run would look successful.
+
+    `--days 1` reaches this arithmetic directly, so the invariant is asserted where it is cheap: a
+    chunked window advances by at least one unit.
+    """
+    monkeypatch.setenv("GARSYNC_TZ", "Europe/Madrid")
+    cursor = "2026-03-01"
+    window = resolve_window(
+        "daily_metrics",
+        datetime(2026, 3, 5, 12, 0, tzinfo=UTC),
+        cursor,
+        trailing_days=1,
+        tz=MADRID,
+    )
+
+    assert window.start == cursor, "the chunk still starts at the seam it re-covers"
+    assert window.covered_through > cursor, "a run that covers nothing new is not a chunk"
+    assert window.days() == [date(2026, 3, 1), date(2026, 3, 2)]
+    assert window.units == 2
+
+
+def test_the_ratified_fourteen_day_bound_is_unchanged_by_the_floor(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The stall fix must not silently widen the ratified ≈71-call budget.
+
+    At the default floor the clamp is inactive: a 30-day gap is still closed in 14-day chunks, so the
+    arithmetic in `test_the_daily_window_costs_one_call_per_day_plus_the_list` keeps its meaning.
+    """
+    monkeypatch.setenv("GARSYNC_TZ", "Europe/Madrid")
+    window = resolve_window(
+        "daily_metrics",
+        datetime(2026, 3, 5, 12, 0, tzinfo=UTC),
+        "2026-02-01",
+        tz=MADRID,
+    )
+    assert window.units == 14
+
+
+def test_a_minute_resolved_class_refuses_to_enumerate_days(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`Window.days()` is the fetch list, and activities have no honest one (Q4).
+
+    Returning a day list for a `limit`-based fetch would let the run claim coverage through the
+    arithmetic of a helper — the defect this whole block exists to prevent, wearing a friendly face.
+    """
+    window = resolve_window("activities", datetime(2026, 3, 5, 12, 0, tzinfo=UTC), None)
+    assert window is not None
+    with pytest.raises(ValueError, match="not window-complete until SUB-003"):
+        window.days()
+
+
+@pytest.mark.parametrize("trailing", [1, 2, 3, TRAILING_DAYS])
+def test_every_floor_value_closes_the_gap_without_stalling(trailing: int) -> None:
+    """A bound the caller can lower needs a floor, or it stops being a bound.
+
+    `test_a_long_gap_is_closed_in_chunks_without_a_hole` already asserts "each chunk advances the
+    cursor" — at 14, the only value the floor could have when it was written, and a property of one
+    input is not a property of the function. Since SUB-002 the floor is caller-supplied (`--days N`),
+    so `N = 1` is an input now, and at one unit the chunk re-covers the cursor's own day and advances
+    nothing (lesson 033). Same loop, four floors, no stall allowed.
+    """
+    cursor = "2026-08-01"
+    steps = 0
+    while True:
+        window = resolve_window("daily_metrics", MORNING, cursor, trailing_days=trailing, tz=MADRID)
+        if window.covered_through == cursor:  # converged: the floor window now repeats
+            break
+        assert window.covered_through > cursor, (trailing, cursor, window)
+        assert window.units <= max(trailing, MIN_CHUNK_UNITS), window
+        cursor = window.covered_through
+        steps += 1
+        assert steps <= 60, f"trailing_days={trailing} did not converge"
+    assert cursor == "2026-09-25", f"trailing_days={trailing} stopped short"

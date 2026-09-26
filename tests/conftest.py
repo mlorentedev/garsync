@@ -76,3 +76,15 @@ def sample_sleep_row() -> dict:
         "sleep_score": 82,
         "raw_data": json.dumps({"source": "test"}),
     }
+
+
+@pytest.fixture(autouse=True)
+def configured_daily_zone(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The operator's `GARSYNC_TZ`, present in tests the way it is present in the deployed environment.
+
+    Since SUB-002 the *runs* need it, not just the migration: `resolve_window` refuses to guess a zone
+    (ADR-008 §11), so a suite that left it unset would fail for a reason unrelated to the test. A test
+    that measures the refusal deletes it again — see
+    `tests/test_window.py::test_the_daily_classes_refuse_to_guess_a_zone`.
+    """
+    monkeypatch.setenv("GARSYNC_TZ", "Europe/Madrid")

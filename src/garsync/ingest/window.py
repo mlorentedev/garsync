@@ -51,6 +51,14 @@ GARSYNC_TZ_VAR: Final = "GARSYNC_TZ"
 #: closed over several runs instead of in one unbounded burst of calls (ADR-008 §8).
 TRAILING_DAYS: Final = 14
 
+#: The smallest span a gap-closing chunk may take. A chunk **re-covers the cursor's own unit** (that is
+#: how a morning revision lands), so a one-unit chunk covers a day it already had and advances the
+#: watermark by nothing — the run repeats forever, each time reporting the same `cursor_after`, and the
+#: gap never closes. Measured with `--days 1` over a four-day-old cursor (SUB-002 block 5):
+#: frozen at the cursor's day. Two units is the minimum that makes progress: the seam plus one new day.
+#: At the ratified 14 the bound is unchanged, so the ≈71-call arithmetic keeps its meaning.
+MIN_CHUNK_UNITS: Final = 2
+
 
 class Granularity(StrEnum):
     """The unit a class is spelled in."""
@@ -61,18 +69,24 @@ class Granularity(StrEnum):
 
 @dataclass(frozen=True)
 class SyncClass:
-    """The coverage policy of one data class: when its data settles, and in what unit."""
+    """The coverage policy of one data class: when its data settles, in what unit, and whether a run
+    of it may claim coverage at all."""
 
     sync_type: str
     settle: timedelta
     granularity: Granularity
+    #: Whether a successful run of this class may write `cursor_after`. This is the Q4 exception, and
+    #: it lives in the table rather than in an `if` at the call site: activities are fetched by
+    #: `limit`, so a cursor would claim a window the run never took (SUB-003 owns the date-range
+    #: fetch, and when it lands this flag flipping is the whole change).
+    claims_cursor: bool = True
 
 
 #: Activities: published minutes after the sync, minute-resolved, so the last 45 minutes are not
 #: claimed. The daily classes: a local day is the unit, so the boundary is the day itself. Weight is
 #: absent on purpose — its cursor is the FitDays cloud's own `sync_time`, owned by SCALE-001.
 CLASSES: Final[dict[str, SyncClass]] = {
-    "activities": SyncClass("activities", timedelta(minutes=45), Granularity.MINUTE),
+    "activities": SyncClass("activities", timedelta(minutes=45), Granularity.MINUTE, False),
     "daily_metrics": SyncClass("daily_metrics", timedelta(0), Granularity.DAY),
     "sleep": SyncClass("sleep", timedelta(0), Granularity.DAY),
     "stress": SyncClass("stress", timedelta(0), Granularity.DAY),
@@ -88,6 +102,23 @@ class Window:
     end: str
     covered_through: str
     units: int
+
+    def days(self) -> list[date]:
+        """The local calendar days this window covers, oldest first — the fetch list for a day class.
+
+        A minute-resolved class raises rather than returning an approximation: inventing a day list for
+        activities would hand the run a coverage claim in the shape of a helper, which is the Q4 defect
+        with a friendly face. The list is exactly `units` long, so the ≈71-call arithmetic in the class
+        table and the number of requests a run makes cannot drift apart.
+        """
+        sync_class = CLASSES[self.sync_type]
+        if sync_class.granularity is not Granularity.DAY:
+            raise ValueError(
+                f"{self.sync_type} is resolved by minute, not by day; its fetch is not window-complete "
+                "until SUB-003"
+            )
+        first = date.fromisoformat(self.start)
+        return [first + timedelta(days=offset) for offset in range(self.units)]
 
 
 def resolve_window(
@@ -135,7 +166,7 @@ def _day_window(
         start_day = floor
     else:
         start_day = min(date.fromisoformat(last_cursor), floor)
-    end_effective = min(end_day, start_day + timedelta(days=trailing_days))
+    end_effective = min(end_day, start_day + timedelta(days=_chunk_units(trailing_days)))
     return Window(
         sync_type=sync_class.sync_type,
         start=start_day.isoformat(),
@@ -158,7 +189,7 @@ def _minute_window(
         start = floor
     else:
         start = min(_parse_minute(last_cursor), floor)
-    end_effective = min(end, start + timedelta(days=trailing_days))
+    end_effective = min(end, start + timedelta(days=_chunk_units(trailing_days)))
     return Window(
         sync_type=sync_class.sync_type,
         start=utc_z(start),
@@ -166,6 +197,16 @@ def _minute_window(
         covered_through=utc_z(end_effective - timedelta(minutes=1)),
         units=int((end_effective - start).total_seconds() // 60),
     )
+
+
+def _chunk_units(trailing_days: int) -> int:
+    """How many units a run's span may hold: the caller's floor, but never less than two.
+
+    One unit is not a chunk, it is a stall — see `MIN_CHUNK_UNITS`. The clamp belongs here, in the one
+    function both granularities call, because a per-window clamp is two places for the same arithmetic
+    to disagree (`lesson-026`'s shape, and the drift `check-lessons` exists to catch).
+    """
+    return max(trailing_days, MIN_CHUNK_UNITS)
 
 
 def _truncate_to_minute(instant: datetime) -> datetime:
