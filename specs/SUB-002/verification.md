@@ -178,8 +178,11 @@ Each departs from the task list as written, and each has a reason that only beca
 14. **`--days N` sets the floor, not the coverage list** (D1). The per-day ledger rows the CLI used to
     write are gone with it: `dates` maps to `trailing_days = max(len(dates), 1)` and `now` defaults to
     `datetime.now(UTC)`, injectable for tests. Two consequences were handled rather than absorbed.
-    (a) `target-architecture` §2.4's "one `ingest_run` row per day per sync_type" is superseded by one row
-    per class per run (§3, §6) — a doc edit, made here. (b) The mapping is not the bound it looks like,
+    (a) The ledger's grain is now one row per class per run, and **no document had to change to say so** —
+    see the correction below: I first wrote that §2.4's "one `ingest_run` row per day per sync_type" was
+    superseded "in a doc edit, made here", and that sentence does not exist in `target-architecture-v2.md`,
+    on this branch or on `master`. The design's `ingest_run` row names columns and is **silent about grain**,
+    and the per-day rows were a property of `SyncService`'s loop, not of the doc. (b) The mapping is not the bound it looks like,
     and the CLI has a branch that skips the run entirely: `cli.py:21` takes `today` in **UTC** while the
     daily keys are `GARSYNC_TZ`-local, so between local 00:00 and 00:59 the newest key reads as tomorrow,
     `_dates_to_sync` returns `[]`, the CLI prints "Everything is up to date" and **no ledger row is
@@ -192,6 +195,17 @@ Each departs from the task list as written, and each has a reason that only beca
     short-circuit fires when the tables reach today" — was **wrong**; the corrected one is in #123 and in
     an erratum comment on #83, since the owner's PR-shape decision was being made on the strength of what
     this branch says it left behind.
+
+**A third self-correction, in the same register as the size figure and lesson 034.** This sitting produced
+two claims that reached durable artifacts without being checked against the thing they cited: the size
+(461, measured over whole files instead of added lines) and the §2.4 quotation above, which was
+**invented** — a sentence I believed the design held, quoted it, and then reported it superseded by an edit
+that had not been made. The failure is not the misreading; it is that both times the citation *felt*
+recalled rather than read. The rule that came out of it: `grep` before quoting a document, and when a claim
+says "changed here", name the commit in the same breath — an unhashable claim is a plan, not a record. No
+doc edit is needed for this change: §3's "ONE TRANSACTION per run" already said the thing the code now does,
+and `git show 431fc9d -- docs/architecture/target-architecture-v2.md` is the whole of what was touched in
+that file on this branch (the M7/M8/M9 block).
 15. **`GARSYNC_TZ` is now needed by every run**, because a daily class resolves at rest too — the window
     is derived, not asked for. `docker-compose.yml` passes it through as `${GARSYNC_TZ:?...}` so compose
     **fails closed** at boot instead of starting a service that raises on its first sync, and the test

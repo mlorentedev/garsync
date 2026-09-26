@@ -24,6 +24,14 @@ contract that was sound.
 **A contract is read, not retyped.** The file is the SSOT; the moment the commands are reconstructed
 from recollection, you are testing your memory of the spec instead of the spec.
 
+The same failure in prose, later in the same sitting: a verification note asserted that
+`target-architecture` §2.4's *"one `ingest_run` row per day per sync_type"* was superseded "by a doc edit,
+made here". **No such sentence exists in that document**, on the branch or on `master`, and no edit was
+made — the design's `ingest_run` row names columns and says nothing about grain. A quotation that *feels*
+recalled is indistinguishable from one that was read, so the rule applies to prose too: `grep` before
+quoting, and when a claim says "changed here", name the commit. An unhashable claim is a plan, not a
+record.
+
 ## 2. Running it verbatim found the real one
 
 `SUB-002-f12` is AC12 — "the migration is additive and idempotent". Its command:
