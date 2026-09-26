@@ -16,10 +16,10 @@ defects, only one of which was in the code.
 ## 1. Paraphrasing the contract produces fake failures
 
 I typed the twelve commands from memory into a throwaway script instead of reading them out of the
-file. Two exited `4` (pytest usage error) against filenames that exist nowhere:
-`tests/test_ledger_counts.py` and `tests/test_schema_contract.py`. Both were my inventions — the real
-tests live in `tests/test_idempotency.py::TestLedgerCounts` and `tests/test_schema.py` +
-`tests/test_migrations.py`. Read as spec defects, they would have "fixed" a contract that was sound.
+file. Two exited `4` (pytest usage error) against a filename that exists nowhere:
+`tests/test_ledger_counts.py`. It was my invention — the real cases are
+`tests/test_idempotency.py::TestLedgerCounts` — and read as a spec defect it would have "fixed" a
+contract that was sound.
 
 **A contract is read, not retyped.** The file is the SSOT; the moment the commands are reconstructed
 from recollection, you are testing your memory of the spec instead of the spec.
