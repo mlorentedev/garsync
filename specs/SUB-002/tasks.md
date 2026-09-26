@@ -66,9 +66,9 @@ changes **zero**; a re-pull from a payload that lacks the derived numbers leaves
 
 ### 4. The ledger counts reality
 
-- [ ] [AC7] Failing test `tests/test_idempotency.py::TestLedgerCounts`: a run that mixes one changed row with several unchanged ones records `rows_upserted = 1`, `rows_fetched = N`, `started_at` set; the **first** pass over pre-existing rows may report changes (canonicalisation), the **second** reports zero
-- [ ] [AC12] Implement migration `0003`: additive `rows_fetched INTEGER NOT NULL DEFAULT 0` and `started_at TEXT NULL` on `ingest_run` (no rebuild, no misleading default)
-- [ ] [AC7] Implement the counts (`changes()` per row, summed) and the ledger write in `IngestRunRepository` (`log(...)` gains `rows_fetched`/`started_at`/cursor arguments, defaults preserving today's callers)
+- [x] [AC7] Failing test `tests/test_idempotency.py::TestLedgerCounts`: a run that mixes one changed row with several unchanged ones records `rows_upserted = 1`, `rows_fetched = N`, `started_at` set; the **first** pass over pre-existing rows may report changes (canonicalisation), the **second** reports zero
+- [x] [AC12] Implement migration `0003`: additive `rows_fetched INTEGER NOT NULL DEFAULT 0` and `started_at TEXT NULL` on `ingest_run` (no rebuild, no misleading default)
+- [x] [AC7] Implement the counts (`changes()` per row, summed) and the ledger write in `IngestRunRepository` (`log(...)` gains `rows_fetched`/`started_at`/cursor arguments, defaults preserving today's callers)
 
 ### 5. The run: fetch outside, write inside
 
@@ -89,7 +89,11 @@ changes **zero**; a re-pull from a payload that lacks the derived numbers leaves
 ### 7. Gate and closure
 
 - [ ] [AC12] Extend `tests/test_migrations.py`: `0003` lands the same schema from a v1 fixture and from a v2 database; only the two columns are added; the chain is idempotent; the real database is still reheard on a `tmp_path` copy with its digest unchanged
-- [ ] [AC10] `make check` green (ruff, `mypy --strict`, pytest, astro check/build, docs build); raise `.coverage-baseline` only if the new tests lift it, in the same commit that pays for it
+- [ ] [AC10] `make check` green (ruff, `mypy --strict`, pytest, astro check/build, docs build)
+- [ ] [AC10] `.coverage-baseline` **equals** what the tree measures. Raising it is a per-commit act, done
+  in the commit whose tests pay for it; this tick only asserts, because the block that *raised* here is
+  what let the number lag (85.17 recorded while the tree measured 85.88 —
+  `docs/lessons/lesson-032-…`).
 - [ ] [AC10] Confirm `/api/sync/status` and the four route suites pass with their assertions unchanged
 - [ ] Refactor pass: `SyncService` and `IngestRunRepository` under 40 lines/function, complexity < 10, nesting < 4
 

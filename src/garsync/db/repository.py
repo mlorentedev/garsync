@@ -440,14 +440,45 @@ class IngestRunRepository:
         status: str = "success",
         error_message: str | None = None,
         source: str = "garmin",
+        *,
+        rows_fetched: int = 0,
+        started_at: str | None = None,
+        cursor_before: str | None = None,
+        cursor_after: str | None = None,
     ) -> None:
-        """Append an ingest run entry (joins the caller's transaction; see ActivityRepository.upsert)."""
+        """Append an ingest run entry (joins the caller's transaction; see ActivityRepository.upsert).
+
+        The two counts are not interchangeable and the row records both (ADR-008 §5, AC7):
+        `rows_fetched` is what the adapter returned, `rows_upserted` is how many of them the guarded
+        upsert actually changed — so a re-pull of a quiet window reads `rows_fetched=14,
+        rows_upserted=0`, and "asked, nothing yet" reads `rows_fetched=0`. Defaults keep today's
+        callers compiling; a caller that leaves them at 0 claims nothing arrived, so the run passes
+        them explicitly.
+
+        `started_at` is the instant the run captured *before* it fetched, never the insert instant
+        (`created_at` is that, and it is the finish). `cursor_before`/`cursor_after` are the window
+        the run covered — the watermark is read back from the ledger by `id`, not by timestamp, which
+        is what makes a late-arriving row with a smaller window the authoritative one.
+        """
         self._conn.execute(
             """
-            INSERT INTO ingest_run (source, sync_type, rows_upserted, status, error_message)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO ingest_run (
+                source, sync_type, rows_upserted, rows_fetched, started_at,
+                status, error_message, cursor_before, cursor_after
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (source, sync_type, rows_upserted, status, error_message),
+            (
+                source,
+                sync_type,
+                rows_upserted,
+                rows_fetched,
+                started_at,
+                status,
+                error_message,
+                cursor_before,
+                cursor_after,
+            ),
         )
 
     def get_latest(self, sync_type: str | None = None) -> sqlite3.Row | None:

@@ -2,7 +2,7 @@
 
 import logging
 import sqlite3
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Any
 
 from garsync.client import GarminClient
@@ -21,6 +21,27 @@ logger = logging.getLogger(__name__)
 #: Provenance written on every row this process ingests. A second source (the scale, SCALE-001) gets
 #: its own value here rather than a second code path.
 GARMIN = "garmin"
+
+
+def _now_z() -> str:
+    """The instant a run began, in the at-rest spelling.
+
+    Captured **before** the fetch, never at the ledger write: `created_at` is the commit instant (the
+    finish), so a `started_at` taken at log time would silently measure the write's own latency.
+    """
+    return utc_z(datetime.now(UTC))
+
+
+def _tally(results: dict[str, int], key: str, outcome: int | None) -> None:
+    """Fold one run's answer into the summary: `None` is a failed run, a number is what arrived.
+
+    The two axes stay separate on the way out exactly as they are separate in the ledger: a run that
+    fetched nothing and a run that failed are different facts, and `errors` counts only the second.
+    """
+    if outcome is None:
+        results["errors"] += 1
+    else:
+        results[key] += outcome
 
 
 def activity_to_row(activity: NormalizedActivity) -> dict[str, Any]:
@@ -104,53 +125,88 @@ class SyncService:
         self.ingest_run_repo = IngestRunRepository(db_conn)
 
     def sync_range(self, dates: list[date], activities_limit: int = 100) -> dict[str, int]:
-        """Run a full sync for the given range of dates."""
-        results = {
-            "activities": 0,
-            "biometrics": 0,
-            "sleep": 0,
-            "errors": 0,
-        }
+        """Run a full sync for the given range of dates.
 
-        # 1. Activities (usually fetched in bulk, not per day)
+        Orchestration only. Each data class is a run, and a run answers with what it fetched or with
+        `None` when it failed; the ledger row is written inside the run, never here. The grain of the
+        daily classes is still one row per day rather than one per covered window — that is SUB-002
+        block 5, which replaces these bodies with the transaction-and-cursor run; what changed here is
+        that the ledger counts what the adapter returned instead of what it fetched.
+        """
+        results: dict[str, int] = {"activities": 0, "biometrics": 0, "sleep": 0, "errors": 0}
+
+        _tally(results, "activities", self._sync_activities(activities_limit))
+        for day in dates:
+            _tally(results, "biometrics", self._sync_biometrics(day))
+            _tally(results, "sleep", self._sync_sleep(day))
+        return results
+
+    def _sync_activities(self, activities_limit: int) -> int | None:
+        """One run of the activities class. Returns what the adapter fetched, or None on failure.
+
+        `rows_upserted` is the summed change count of the guarded upserts, so a re-pull over a covered
+        window records 0 while `rows_fetched` still records the 100 rows Garmin returned (AC7). Before
+        this, both columns carried the fetched count — the number that made "zero changed values"
+        unauditable.
+        """
+        started_at = _now_z()
         try:
             activities = self.client.fetch_activities(limit=activities_limit)
-            for activity in activities:
-                self.activity_repo.upsert(activity_to_row(activity))
-            results["activities"] = len(activities)
-            self.ingest_run_repo.log("activities", len(activities), "success")
+            changed = sum(
+                self.activity_repo.upsert(activity_to_row(activity)) for activity in activities
+            )
+            self.ingest_run_repo.log(
+                "activities", changed, rows_fetched=len(activities), started_at=started_at
+            )
+            return len(activities)
         except Exception as e:  # noqa: BLE001
             logger.error(f"Failed to sync activities: {e}")
-            self.ingest_run_repo.log("activities", 0, "error", str(e))
-            results["errors"] += 1
+            self.ingest_run_repo.log(
+                "activities", 0, "error", str(e), rows_fetched=0, started_at=started_at
+            )
+            return None
 
-        # 2. Daily metrics (Biometrics and Sleep)
-        for d in dates:
-            date_str = d.isoformat()
+    def _sync_biometrics(self, day: date) -> int | None:
+        """One day's biometrics run: the four endpoints behind one call, one row, one ledger entry."""
+        date_str = day.isoformat()
+        started_at = _now_z()
+        try:
+            bio = self.client.fetch_biometrics(day)
+            changed = self.biometrics_repo.upsert(biometrics_to_row(bio))
+            self.ingest_run_repo.log("biometrics", changed, rows_fetched=1, started_at=started_at)
+            return 1
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"Failed to sync biometrics for {date_str}: {e}")
+            self.ingest_run_repo.log(
+                "biometrics",
+                0,
+                "error",
+                f"{date_str}: {e}",
+                rows_fetched=0,
+                started_at=started_at,
+            )
+            return None
 
-            # Biometrics
-            try:
-                bio = self.client.fetch_biometrics(d)
-                self.biometrics_repo.upsert(biometrics_to_row(bio))
-                results["biometrics"] += 1
-                self.ingest_run_repo.log("biometrics", 1, "success")
-            except Exception as e:  # noqa: BLE001
-                logger.warning(f"Failed to sync biometrics for {date_str}: {e}")
-                self.ingest_run_repo.log("biometrics", 0, "error", f"{date_str}: {e}")
-                results["errors"] += 1
-
-            # Sleep
-            try:
-                sleep = self.client.fetch_sleep(d)
-                self.sleep_repo.upsert(sleep_to_row(sleep))
-                results["sleep"] += 1
-                self.ingest_run_repo.log("sleep", 1, "success")
-            except Exception as e:  # noqa: BLE001
-                logger.warning(f"Failed to sync sleep for {date_str}: {e}")
-                self.ingest_run_repo.log("sleep", 0, "error", f"{date_str}: {e}")
-                results["errors"] += 1
-
-        return results
+    def _sync_sleep(self, day: date) -> int | None:
+        """One night's sleep run. A night that is not published yet is an error row, not a zero."""
+        date_str = day.isoformat()
+        started_at = _now_z()
+        try:
+            sleep = self.client.fetch_sleep(day)
+            changed = self.sleep_repo.upsert(sleep_to_row(sleep))
+            self.ingest_run_repo.log("sleep", changed, rows_fetched=1, started_at=started_at)
+            return 1
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"Failed to sync sleep for {date_str}: {e}")
+            self.ingest_run_repo.log(
+                "sleep",
+                0,
+                "error",
+                f"{date_str}: {e}",
+                rows_fetched=0,
+                started_at=started_at,
+            )
+            return None
 
     def get_latest_synced_date(self) -> str | None:
         """Get the most recent date present in the biometrics table."""

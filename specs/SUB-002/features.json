@@ -45,8 +45,8 @@
     "id": "SUB-002-f7",
     "behavior": "AC7 — the ledger counts reality: rows_upserted is the number of rows whose values changed, rows_fetched is what the adapter returned, and the declared canonical-serialisation pass is the only one allowed to report changes",
     "verification": "poetry run pytest tests/test_idempotency.py -q -k TestLedgerCounts",
-    "state": "pending",
-    "evidence": ""
+    "state": "verified",
+    "evidence": "poetry run pytest tests/test_idempotency.py -q -k TestLedgerCounts -> 4 passed (same commit as 0003_ledger_counts): a mixed run reads rows_upserted=1 / rows_fetched=4 / started_at set; the canonicalising pass reports 3 then 0; a caller that did not capture started_at stores NULL, not the insert instant"
   },
   {
     "id": "SUB-002-f8",

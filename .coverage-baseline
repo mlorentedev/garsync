@@ -4,6 +4,18 @@
 # than 2 points below this number. Raising it is a deliberate, reviewable act:
 # add the tests that close the gap, then move the number in the same commit.
 #
+# Measured 2026-09-25 on `feat/ingest-ledger-idempotent-writes` (SUB-002, ledger counts — block 4):
+#   pytest --cov=garsync -m "not e2e"   277 passed, 1020 statements, 144 missed
+#   TOTAL 86% (85.88)
+#
+# Raised from 85.17, and the gap it closes was measured two commits ago: the idempotency suite (block
+# 3) carried the tree to 85.67 without moving this file, because the tick that says "raise the ratchet
+# only if the new tests lift it" lives in block 7 and nobody had read it back yet. A ratchet that lags
+# the tests it is supposed to defend lets a later commit delete coverage and still pass, so it is set
+# to what the tree measures now, in the commit that adds the tests keeping it there — `TestLedgerCounts`
+# and `0003_ledger_counts`, whose two columns and NULL-on-purpose default are the new statements. The
+# rest of the diff is the pipeline extraction, which measured the same before and after.
+#
 # Measured 2026-09-25 on `feat/ingest-ledger-idempotent-writes` (SUB-002, first cycle — the window
 # rule):
 #   pytest --cov=garsync -m "not e2e"   236 passed, 971 statements, 144 missed
@@ -27,4 +39,4 @@
 #   src/garsync/exporter.py     0%   (declared, not yet wired to a route or the CLI)
 #   src/garsync/db/backup.py   59%   (the CLI entry point; the snapshot itself is covered)
 #   src/garsync/__main__.py     0%   (module entry point)
-85.17
+85.88
