@@ -49,6 +49,14 @@ The same rehearsal over the real database, this time measuring the chain rather 
   decision 9 below: `rows_fetched=0` is *only* interpretable as AC9's "asked, nothing arrived" once the
   query excludes `source='legacy'`.
 
+### Re-checked at block 6 (2026-09-25)
+
+The rehearsal costs seconds, and the claim it supports — "the chain lands on the real file, and the real
+file is untouched" — is exactly the one a later revision could silently invalidate. Re-run: head is still
+`0003_ledger_counts` on a fresh copy, the original's digest (`6e116fd1…`) is unchanged after **two**
+`init_db` calls, and the rows are the same 100 / 4 / 4 / 9. Recorded because an unrepeated rehearsal is a
+memory, not a check.
+
 ## Evidence per acceptance criterion
 
 | AC | Evidence | State |
@@ -60,8 +68,8 @@ The same rehearsal over the real database, this time measuring the chain rather 
 | **AC5** no lock across the fetch | `TestNoLockAcrossTheFetch` (2): the client stub observes `conn.in_transaction is False` on every call, and a second connection writes and **commits during the fetch** with `busy_timeout=0` — it would raise `database is locked` if `BEGIN IMMEDIATE` opened first | **done** |
 | **AC6** idempotency, proven on a narrower payload | `TestNarrowerRepull` (6) + `TestNarrowerRepullDailyClasses` (3) + per-column omission tests over `DERIVED_COLUMNS`, `DAILY_METRICS_PAYLOAD_COLUMNS`, `SLEEP_PAYLOAD_COLUMNS` (17) + the rehearsal above | **done** |
 | **AC7** the ledger counts reality | `upsert` returns the rows it changed (`rowcount`, measured equal to `changes()`); `TestLedgerCounts` (4) reads both counts back **from the ledger row** — one revised row among four re-fetched records `rows_upserted=1, rows_fetched=4`, the canonicalising first pass records 3 and the second 0, and `started_at` is NULL unless the run captured it. `sync_range` passes the measured counts for every class, and the error row carries what the run fetched | **done** |
-| **AC8** nothing reads `updated_at` as a change signal | the guard test is block 6 | **open** |
-| **AC9** SC-02(3) from committed data, no payload store | block 6 | **open** |
+| **AC8** nothing reads `updated_at` as a change signal | `tests/test_updated_at_guard.py` (19 cases): the tree scan — every occurrence in `src/` must be a write, with the occurrence count asserted non-zero so the guard cannot pass by absence — **plus the guard's own table**: 7 reads it must name (WHERE, ORDER BY, projection, `AND` predicate, `JOIN ON`, subscript load, name load) and 8 writes it must let through (`SET`, insert list, `SET … WHERE key`, dict key, store, `sa.Column` declaration, docstring, comment); a docstring-sharing-a-line case keeps the exemption syntactic; and a clause-level assertion that the guarded upsert decides on the key and never compares the column. Boundary stated in the file: this guards `updated_at`; the CLI's `MAX(date)` incremental decision is #123 | **done** |
+| **AC9** SC-02(3) from committed data, no payload store | `tests/test_ledger_coverage.py` (12 cases) over `IngestRunRepository.covered_days` / `days_not_uploaded_yet` / `days_with_no_data`: SC-02(3)'s two answers held apart, and the third state (never asked) kept out of both; error rows and `source='legacy'` rows cannot cover a day; overlapping windows answered as the union of what was asked (the morning revision); the window clamped to the range asked; `raw_payload` asserted absent; four refusals, one of them a drift guard asserting `DAY_KEYED_TABLES` cannot silently diverge from `CLASSES` | **done** |
 | **AC10** routes and `make check` green | `make check` green at every commit; `tests/api/` unchanged and passing — the reads keep working because no column name moved and `DailyMetrics.total_weight_kg` is a view, not a rename | **done so far** |
 | **AC11** knowledge recorded | ADR-008 amendment, lessons 028–031 + index, `target-architecture` §12 (M7, M8/M9 blocked) | **done** |
 | **AC12** the migration is additive and idempotent | `0003_ledger_counts` adds the two columns and nothing else, no rebuild, no default on `started_at`; the chain test (same schema from a v1 fixture and from a v2 database, re-run changes nothing, real db reheard on a copy) is block 7 | **partial** |
@@ -81,8 +89,8 @@ case count recorded next to each exit code (lesson 034 — an exit code without 
 | f5 `TestNoLockAcrossTheFetch` | exit 0 | 2 |
 | f6 `TestNarrowerRepull` | exit 0 | 9 |
 | f7 `TestLedgerCounts` | exit 0 | 4 |
-| f8 `tests/test_updated_at_guard.py` | **exit 4** — file absent | 0 (block 6 writes it) |
-| f9 `tests/test_ledger_coverage.py` | **exit 4** — file absent | 0 (block 6 writes it) |
+| f8 `tests/test_updated_at_guard.py` | exit 0 (block 6) | 19, and 15 of those are the guard's own table |
+| f9 `tests/test_ledger_coverage.py` | exit 0 (block 6) | 12 |
 | f10 `make check` | exit 0 | the whole gate |
 | f11 ADR-008 + `check-lessons` | exit 0 | 33 lessons, index paired |
 | f12 the `0003` chain | exit 0 | **1, and the wrong one** |
@@ -95,9 +103,9 @@ database and one migrated from a v1 fixture are schema-identical; re-running cha
 the command to match.
 
 
-- `make check` → lint ok · `mypy --strict` ok · **301 passed** (`not e2e`) · astro-check 0 errors ·
+- `make check` → lint ok · `mypy --strict` ok · **332 passed** (`not e2e`) · astro-check 0 errors ·
   astro-build ok · docs-build ok
-- Coverage **86.94%** (1034 statements, 135 missed). `.coverage-baseline` reads 86.94 as of this commit:
+- Coverage **87.43%** (1074 statements, 135 missed). `.coverage-baseline` reads 87.43 as of this commit:
   the number had been lagging the tree (85.67 since the idempotency suite, 85.17 recorded), because the
   tick that raises it lives in block 7 and was never read back — recorded in the file itself so the next
   reader does not repeat the pattern. `db/connection.py`, `db/repository.py`, `ingest/payload.py`,
@@ -189,13 +197,31 @@ Each departs from the task list as written, and each has a reason that only beca
     **fails closed** at boot instead of starting a service that raises on its first sync, and the test
     suite sets it explicitly (it is a host env var that leaks into tests, and a test that inherits it is
     not measuring the same thing twice).
+16. **SC-02(3)'s two answers are separate queries, and a third state belongs to neither.**
+    `days_not_uploaded_yet` is a day inside a covered window whose every covering run fetched zero rows;
+    `days_with_no_data` is a day inside a covered window that did return rows, absent from the class table;
+    a day outside every window was **never asked** and appears in neither list — which is the property the
+    staleness alert depends on, since SC-02(3) tunes the threshold above normal lateness and a coverage
+    hole is not lateness. `covered_days` is the only function permitted to answer with an empty set,
+    because "no window covers this range" *is* the third state (lesson 035).
+17. **Coverage questions are refused rather than answered empty.** `activities` (minute-resolved, no
+    cursor until SUB-003), `stress` (windowed, no storage yet) and an unknown class name all raise; and
+    `DAY_KEYED_TABLES` is asserted against `CLASSES` instead of trusted, so a newly declared day class
+    cannot quietly become queryable. The alternative — returning `[]` — reads downstream as "we looked and
+    there was nothing": a claim about the body, manufactured by a fact about the code.
+18. **`rows_fetched` separates the two answers; `rows_upserted` could not.** Had AC7's honest count not
+    landed first, both queries would have had to infer "was there anything" from the class table, which
+    collapses "asked, nothing arrived" into "no data for D" — they are the same shape when nothing arrived
+    anywhere. That is why block 4 preceded block 6 instead of being merged into it.
 
 ## Carried, and to be closed before the archive
 
 - `AC12`'s chain test: block 7 (`tests/test_migrations.py` — same schema from a v1 fixture and from a v2
   database, only two columns added, re-running the chain changes nothing, the real db on a `tmp_path`
   copy).
-- `AC8`, `AC9`: the guard over `updated_at` and the SC-02(3) queries — block 6.
+- Nothing is carried for AC8/AC9: block 6 settled both. AC9's *consumers* (the day report, the
+  staleness alert threshold) are other tickets — the ledger now answers the question, which is what this
+  issue owned.
 - `M8`/`M9` remain **blocked** at Garmin's edge (429/Cloudflare), not answered; both took their declared
   defaults here.
 
@@ -212,12 +238,15 @@ Each departs from the task list as written, and each has a reason that only beca
 | Range | src/ executable lines added | Largest contributors |
 |---|---|---|
 | `master…7ef61e0` (blocks 1–3: transaction, window, idempotency) | **235** | `ingest/window.py` 99, `db/repository.py` 94, `db/connection.py` 20 |
-| `7ef61e0…HEAD` (blocks 4–5: ledger counts, the per-class run) | **171** | `pipeline.py` 113, `db/repository.py` 24, `window.py` 17, `0003_ledger_counts.py` 17 |
-| `master…HEAD` (the whole branch so far) | **401** | the two halves sum to 406 because block 5 rewrote 5 lines block 3 had added |
-| `tests/` over the branch (excluded from the cap) | 823 | `test_idempotency.py`, `test_window.py`, `test_sync_pipeline.py`, `test_transaction.py` |
+| `7ef61e0…811efd3` (blocks 4–5: ledger counts, the per-class run) | **171** | `pipeline.py` 113, `db/repository.py` 24, `window.py` 17, `0003_ledger_counts.py` 17 |
+| block 6 (SC-02(3) coverage queries) | **64** | `db/repository.py` alone: three queries, two helpers, one map |
+| `master…working tree` (the whole branch so far) | **465** | 235 + 171 + 64; the ranges above sum to 470 because block 5 rewrote 5 lines block 3 had added |
+| `tests/` over the branch (excluded from the cap) | 1136 | `test_sync_pipeline.py` 293, `test_idempotency.py` 204, `test_window.py` 198, plus block 6's two files at 154 and 159 |
 | `docs/` + `specs/` (excluded) | 967 insertions | this file, ADR-008, lessons 028–034 |
 
-The repo's cap is ~300 executable lines per PR (ADR-017). **Both halves are under it.**
+The repo's cap is ~300 executable lines per PR (ADR-017). **Both halves are under it** — and block 6 kept
+them level: splitting at the existing seam now yields 235 and 235, with the last commit's 64 lines landing
+where the AC12 chain test will also land (block 7 is expected to stay small).
 
 ```
 corrections, recorded rather than swallowed. Two earlier numbers in this file were wrong, and the
