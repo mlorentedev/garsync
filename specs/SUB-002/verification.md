@@ -132,3 +132,37 @@ Each departs from the task list as written, and each has a reason that only beca
 - `AC8`, `AC9`: the guard over `updated_at` and the SC-02(3) queries — block 6.
 - `M8`/`M9` remain **blocked** at Garmin's edge (429/Cloudflare), not answered; both took their declared
   defaults here.
+
+## The diff's size, measured (for the PR body's declaration)
+
+Method: `git diff master...HEAD -- src`, keeping only added lines that fall inside an `ast` statement
+span of the file at `HEAD` — docstrings and comments excluded, continuation lines of a multi-line call
+counted. The same instrument is in this section's footer, so the number can be re-measured and not
+merely trusted.
+
+| File | added (exec) |
+|---|---|
+| `ingest/window.py` | 125 |
+| `db/repository.py` | 157 |
+| `pipeline.py` | 100 |
+| `db/connection.py` | 33 |
+| `db/migrations/versions/0003_ledger_counts.py` | 20 |
+| `ingest/__init__.py` | 16 |
+| `ingest/payload.py` | 7 |
+| `db/backup.py` | 3 |
+| **total, blocks 1–4** | **461** |
+
+Split at the seam this branch actually has: blocks 1–3 = **311**, block 4 = **150**. The repo's cap is
+~300 executable lines per PR (ADR-017), so **the branch is over it either way** — 311 was already over
+before this sitting added 150 — and blocks 5–7 will add more. The declaration, and the choice of how to
+land it, is the owner's; the seam that was *not* taken is 1–2 / 3–4, because the ledger would then ship
+one or more releases in which `rows_upserted` still holds the fetched count — the number this spec exists
+to stop writing.
+
+```
+correction, recorded rather than swallowed: the /catchup briefing for this sitting reported "~317
+executable src lines". That was a line-based proxy (blanks, `#` comments and docstring delimiters
+stripped) and it was wrong in both directions — it counted docstring bodies and missed statement
+continuation lines. The instrument above gives 461. An overage declared with a bad number is worse than
+no number.
+```
