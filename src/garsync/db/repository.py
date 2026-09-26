@@ -10,9 +10,11 @@ a write outside any transaction simply autocommits, because the connection runs 
 """
 
 import sqlite3
-from typing import Any
+from datetime import date, timedelta
+from typing import Any, Final
 
 from garsync.db.connection import transaction
+from garsync.ingest.window import CLASSES, Granularity
 
 #: Garmin's own derived numbers. Re-read from the retained payload rather than refetched, and NULL
 #: wherever the payload did not carry them — `activityTrainingLoad` is absent from most list-endpoint
@@ -85,6 +87,52 @@ SLEEP_PAYLOAD_COLUMNS = (
     "sleep_score",
     "raw_data",
 )
+
+
+#: Which storage table holds a coverage class's day-keyed rows. The two classes missing from it are
+#: missing on purpose: `activities` is minute-resolved and claims no cursor (its fetch is not
+#: window-complete until SUB-003), and `stress` is windowed but has no storage yet. Asking either is
+#: refused in `_day_table`, never answered with an empty list — an empty answer reads as "we looked and
+#: the body produced nothing", which is a claim about the body, not about the code.
+DAY_KEYED_TABLES: Final[dict[str, str]] = {
+    "daily_metrics": "daily_metrics",
+    "sleep": "sleep_sessions",
+}
+
+
+def _day_table(sync_type: str) -> str:
+    """The table a coverage class's day-keyed rows live in, or the reason the question is refused.
+
+    Refusing loudly is the point. An empty list would be a true-looking answer to a question the schema
+    cannot support, and "the ledger asked about every day and found nothing" is the most confident wrong
+    sentence this subsystem can produce.
+    """
+    spec = CLASSES.get(sync_type)
+    if spec is None:
+        raise ValueError(f"{sync_type!r} is not a coverage class ({', '.join(sorted(CLASSES))})")
+    if spec.granularity is not Granularity.DAY or not spec.claims_cursor:
+        raise ValueError(
+            f"{sync_type} is resolved by minute, not by day: its coverage is not window-complete until "
+            "SUB-003 lands the date-range fetch (Q4)"
+        )
+    table = DAY_KEYED_TABLES.get(sync_type)
+    if table is None:
+        raise ValueError(f"{sync_type} is windowed but has no day-keyed table to check yet")
+    return table
+
+
+def _days_between(before: str, after: str, start: date, end: date) -> set[str]:
+    """The days a run's covered window contributes to the question, clamped to `[start, end]`.
+
+    The clamp is the part that matters: a run that covered a month answers a question about one week with
+    one week of days, not with the month. `max(..., 0)` rather than an `if`, because the query already
+    filters to overlapping windows — an uncovered branch here would be an assertion that the SQL can be
+    bypassed.
+    """
+    first = max(date.fromisoformat(before), start)
+    last = min(date.fromisoformat(after), end)
+    span = max((last - first).days + 1, 0)
+    return {(first + timedelta(days=offset)).isoformat() for offset in range(span)}
 
 
 def _incoming(column: str, table: str, carried: tuple[str, ...]) -> str:
@@ -506,6 +554,88 @@ class IngestRunRepository:
             return None
         cursor: str | None = row["cursor_after"]
         return cursor
+
+    def covered_days(
+        self, sync_type: str, start: date, end: date, source: str = "garmin"
+    ) -> set[str]:
+        """Which days in `[start, end]` a **successful** run has covered. Empty is not the same as none.
+
+        SC-02(3)'s first axis: a day outside every window was never asked about, which is a fact about the
+        runner, while the two questions below are facts about the data. Only `success` rows count (a run
+        whose data rolled back covered nothing), and `source='legacy'` rows cannot count even if they grew
+        cursors — v1 recorded no window, so it can support no claim about one (decision 9).
+        """
+        days: set[str] = set()
+        for row in self._covering_runs(sync_type, start, end, source):
+            days |= _days_between(row["cursor_before"], row["cursor_after"], start, end)
+        return days
+
+    def days_not_uploaded_yet(
+        self, sync_type: str, start: date, end: date, source: str = "garmin"
+    ) -> list[str]:
+        """Covered days the class table is silent about, where every covering run fetched zero rows.
+
+        "We asked, nothing had arrived." SC-02(3)'s late-upload state: expected, not a failure, and the
+        reason the staleness alert must sit above the normal lateness rather than at zero.
+        """
+        return self._absent_days(sync_type, start, end, source)[0]
+
+    def days_with_no_data(
+        self, sync_type: str, start: date, end: date, source: str = "garmin"
+    ) -> list[str]:
+        """Covered days with no row, inside a window that **did** return rows for other days.
+
+        "There is no data for that day." A rest day, a night the watch was not worn: also expected, but a
+        different sentence in the digest, and it is only distinguishable from the state above because AC7
+        made `rows_fetched` count what arrived rather than what the loop wrote.
+        """
+        return self._absent_days(sync_type, start, end, source)[1]
+
+    def _absent_days(
+        self, sync_type: str, start: date, end: date, source: str
+    ) -> tuple[list[str], list[str]]:
+        table = _day_table(sync_type)
+        arrived: dict[str, bool] = {}
+        for row in self._covering_runs(sync_type, start, end, source):
+            anything = bool(row["rows_fetched"])
+            for day in _days_between(row["cursor_before"], row["cursor_after"], start, end):
+                arrived[day] = arrived.get(day, False) or anything
+        stored = {
+            row["date"]
+            for row in self._conn.execute(
+                f"SELECT date FROM {table} WHERE date BETWEEN ? AND ?",
+                (start.isoformat(), end.isoformat()),
+            )
+        }
+        absent = sorted(day for day in arrived if day not in stored)
+        return (
+            [day for day in absent if not arrived[day]],
+            [day for day in absent if arrived[day]],
+        )
+
+    def _covering_runs(
+        self, sync_type: str, start: date, end: date, source: str
+    ) -> list[sqlite3.Row]:
+        """Successful rows whose window touches `[start, end]`, newest shape unchanged.
+
+        The comparison is lexical and safe because the cursors are ISO dates — the same reason `utc_z`
+        exists for timestamps. `start <= cursor_after and end >= cursor_before` is the interval overlap,
+        so a run that closed before the question began is excluded without a date parse in SQL.
+        """
+        _day_table(sync_type)  # refuse the classes that cannot answer a day question
+        return list(
+            self._conn.execute(
+                """
+                SELECT cursor_before, cursor_after, rows_fetched
+                FROM ingest_run
+                WHERE source = ? AND sync_type = ? AND status = 'success'
+                  AND cursor_before IS NOT NULL AND cursor_after IS NOT NULL
+                  AND cursor_after >= ? AND cursor_before <= ?
+                ORDER BY id
+                """,
+                (source, sync_type, start.isoformat(), end.isoformat()),
+            ).fetchall()
+        )
 
     def get_latest(self, sync_type: str | None = None) -> sqlite3.Row | None:
         """Get the most recent ingest run, optionally filtered by data class."""
