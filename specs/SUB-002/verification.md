@@ -168,13 +168,22 @@ Each departs from the task list as written, and each has a reason that only beca
     `(source, sync_type)`, so nothing is lost by the reading. A test written against the other reading
     failed first, and the test was wrong.
 14. **`--days N` sets the floor, not the coverage list** (D1). The per-day ledger rows the CLI used to
-    write are gone with it: `dates` maps to `trailing_days = len(dates)` (N=7 → floor 7, the ratified
-    continuous coverage; N=1 → the minimum chunk) and `now` defaults to `datetime.now(UTC)`, injectable
-    for tests. Two consequences are ticketed rather than silently absorbed: the CLI's short-circuit that
-    returns *no dates* when the daily tables already reach today now contradicts the coverage rule (it
-    suppresses the re-cover that lets a morning revision land, and a ledger that stops writing is worse
-    than one that repeats), and `target-architecture` §2.4's "one `ingest_run` row per day per sync_type"
-    is superseded by one row per class per run (§3, §6).
+    write are gone with it: `dates` maps to `trailing_days = max(len(dates), 1)` and `now` defaults to
+    `datetime.now(UTC)`, injectable for tests. Two consequences were handled rather than absorbed.
+    (a) `target-architecture` §2.4's "one `ingest_run` row per day per sync_type" is superseded by one row
+    per class per run (§3, §6) — a doc edit, made here. (b) The mapping is not the bound it looks like,
+    and the CLI has a branch that skips the run entirely: `cli.py:21` takes `today` in **UTC** while the
+    daily keys are `GARSYNC_TZ`-local, so between local 00:00 and 00:59 the newest key reads as tomorrow,
+    `_dates_to_sync` returns `[]`, the CLI prints "Everything is up to date" and **no ledger row is
+    written** — a run that does not ask cannot claim coverage (AC4) and cannot be distinguished from a
+    scheduler that never fired. Measured on the live function, `--days 7`: newest key 60 days old → **8**
+    dates (the list is inclusive at both ends, so the flag under-bounds by a day exactly when the caller
+    most wants a bound); `today` → 1 date; `today + 1` → 0. Filed as **SYNC-002 #123** with the
+    reproduction and three options, not fixed in scope: user-visible behaviour, and `make sync DAYS=…`
+    semantics belong to their own review. Recorded here because the description I first gave — "the
+    short-circuit fires when the tables reach today" — was **wrong**; the corrected one is in #123 and in
+    an erratum comment on #83, since the owner's PR-shape decision was being made on the strength of what
+    this branch says it left behind.
 15. **`GARSYNC_TZ` is now needed by every run**, because a daily class resolves at rest too — the window
     is derived, not asked for. `docker-compose.yml` passes it through as `${GARSYNC_TZ:?...}` so compose
     **fails closed** at boot instead of starting a service that raises on its first sync, and the test
