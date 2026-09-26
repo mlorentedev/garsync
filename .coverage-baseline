@@ -4,6 +4,16 @@
 # than 2 points below this number. Raising it is a deliberate, reviewable act:
 # add the tests that close the gap, then move the number in the same commit.
 #
+# Measured 2026-09-25 on `feat/ingest-ledger-idempotent-writes` (SUB-002, the per-class run):
+#   pytest --cov=garsync -m "not e2e"   301 passed, 1034 statements, 135 missed
+#   TOTAL 87% (86.94)
+#
+# Raised from 85.88 by the run's own tests (AC1/AC4/AC5) and by two guards that close branches the
+# suite had never reached: `Window.days()` refusing to enumerate a minute-resolved class, and
+# `activity_to_row` reading the UTC instant out of the payload instead of a zone. `repository.py`,
+# `connection.py`, `payload.py` remain at 100%; `window.py` and `pipeline.py` are at 99%, each missing
+# one line that only a real clock reaches (`_utc_now`).
+#
 # Measured 2026-09-25 on `feat/ingest-ledger-idempotent-writes` (SUB-002, ledger counts — block 4):
 #   pytest --cov=garsync -m "not e2e"   277 passed, 1020 statements, 144 missed
 #   TOTAL 86% (85.88)
@@ -39,4 +49,4 @@
 #   src/garsync/exporter.py     0%   (declared, not yet wired to a route or the CLI)
 #   src/garsync/db/backup.py   59%   (the CLI entry point; the snapshot itself is covered)
 #   src/garsync/__main__.py     0%   (module entry point)
-85.88
+86.94

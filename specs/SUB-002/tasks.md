@@ -72,11 +72,12 @@ changes **zero**; a re-pull from a payload that lacks the derived numbers leaves
 
 ### 5. The run: fetch outside, write inside
 
-- [ ] [AC5] Failing test `tests/test_sync_pipeline.py::TestNoLockAcrossTheFetch`: a client stub that blocks while being called observes `conn.in_transaction is False`, and a second writer commits while it is blocked
-- [ ] [AC1] Failing test `::TestAtomicRun`: a write failing after the first upsert leaves zero data rows, zero `success` rows, exactly one `error` row written after the rollback; a successful run's `success` row commits with its data
-- [ ] [AC1] [AC5] Implement the per-class run in `SyncService` (fetch → `with transaction(conn)` → upserts → `success` row; on failure → `error` row in its own transaction)
-- [ ] [AC4] Failing test `tests/test_repository_ingest_run.py::TestCursors`: zero rows still advances `cursor_after`; a failed run does not; the value is never the run's wall clock; lookup is by ledger `id` (a row with a later `created_at` and a lower `id` loses); activities' cursor stays `NULL` (Q4)
-- [ ] [AC4] Implement cursor read/write per `(source, sync_type)` with `status='success'` and `cursor_kind` handling for the activities exception
+- [x] [AC5] Failing test `tests/test_sync_pipeline.py::TestNoLockAcrossTheFetch`: a client stub that blocks while being called observes `conn.in_transaction is False`, and a second writer commits while it is blocked
+- [x] [AC1] Failing test `::TestAtomicRun`: a write failing after the first upsert leaves zero data rows, zero `success` rows, exactly one `error` row written after the rollback; a successful run's `success` row commits with its data
+- [x] [AC1] [AC5] Implement the per-class run in `SyncService` (fetch → `with transaction(conn)` → upserts → `success` row; on failure → `error` row in its own transaction)
+- [x] [AC4] Failing test `tests/test_repository_ingest_run.py::TestCursors`: zero rows still advances `cursor_after`; a failed run does not; the value is never the run's wall clock; lookup is by ledger `id` (a row with a later `created_at` and a lower `id` loses); activities' cursor stays `NULL` (Q4)
+- [x] [AC4] Implement cursor read/write per `(source, sync_type)` with `status='success'`, and the activities exception as a **declared flag on the class table** (`SyncClass.claims_cursor`, Q4) — the `cursor_kind` column this line originally named exists nowhere in the design of record (proposal D1, ADR-008, `target-architecture` §4, the schema); it was a draft residue, and the ratified reading is that a NULL cursor *is* the exception
+- [x] Found while driving the window from a run: a one-unit chunk re-covers the cursor's own day and advances the watermark by **nothing** — `MIN_CHUNK_UNITS = 2`, clamp in `_chunk_units()`, convergence asserted over `{1,2,3,14}` (lesson 033)
 
 ### 6. What the ledger answers, and what it must not
 
@@ -115,4 +116,6 @@ This spec emits a sibling `features.json` (alongside this file) following [[patt
 
 **Pass-state gating:** the agent CANNOT write `"state": "passing"` — only the harness, after running `verification` and capturing exit code 0, may set that terminal state. Reviewers must reject PRs where features.json contains `passing` entries with empty `evidence`.
 
-Every command below runs from the repository root and is expected to **fail** while the spec is `draft`.
+The commands are the sibling `features.json` entries — that file is the executable contract, so a
+command paraphrased elsewhere is not the contract. Each runs from the repository root and is expected
+to **fail** while the spec is `draft`.
