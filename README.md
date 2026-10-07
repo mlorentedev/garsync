@@ -38,9 +38,12 @@ make setup
 ```
 
 ### 3. Configure Secrets
-Edit your Garmin credentials using SOPS:
+Edit your Garmin credentials using SOPS. The file is encrypted to garsync's dedicated age identity
+(see [`docs/runbooks/onboard-new-machine.md`](docs/runbooks/onboard-new-machine.md)), and sops must
+be told the format, because it cannot infer it from `.enc`:
 ```bash
-sops secrets.env.enc
+SOPS_AGE_KEY_FILE=~/.config/age/garsync.txt \
+  sops --input-type dotenv --output-type dotenv secrets.env.enc
 ```
 
 ### 4. Sync & Launch
