@@ -23,8 +23,8 @@ measurement.
 
 **Solution:** corrected in the crystallize pass that found it. The procedure from now on: before
 applying a review finding that asserts how a tool behaves, `grep -ril <tool> docs/lessons docs/adr`.
-If the repo has measured it, the measurement wins, and the triage reply cites it. A THEORETICAL or
-SPECULATIVE grade is a reason to verify, never a reason to comply.
+If the repo has measured it, the measurement wins within the scope it covers (the same tool, contract and kind of update), and the triage reply cites it. Outside that scope it is a lead to re-measure, not a verdict. A THEORETICAL or
+SPECULATIVE grade is a reason to verify, never a reason to comply. The same applies to the opposite case: the review of this lesson's own PR corrected lesson 037's mechanism (binary store, not JSON), and was right, which a dummy-file measurement confirmed before it was applied.
 
 **Why:** applying every finding feels like diligence, and the triage looks complete. But a reviewer
 works from its general knowledge of the tool, while the repo has measured this case. When the two
