@@ -24,10 +24,15 @@ container run), `.coverage`, `specs/**/review-transcript.jsonl*` (launcher logs;
 garsync's `secrets.env.enc` is encrypted to **one dedicated recipient**,
 `age132cnnnxv7evunrw7qa7n0f8e8pjxu5rdqwnpdjqmtkx3ka4yx33qngfd76` (see `.sops.yaml`). The
 machine-wide key (`~/.config/age/key.txt`, `~/.config/sops/age/keys.txt`) **does not decrypt it**;
-it was removed with `sops updatekeys` after SEC-001.
+this is **deliberate, not an oversight**: SEC-001's secrets hardening
+(`specs/archive/SEC-001/proposal.md`, lesson 004) moved garsync to its own identity, outside the
+master/password-manager key chain, and removed the master recipient with `sops updatekeys`. Do not
+"fix" it by adding the master key back to `.sops.yaml`; carry `garsync.txt` instead, to the same
+path on macOS and Linux.
 
 ```sh
-install -D -m 600 /path/to/carried/garsync.txt ~/.config/age/garsync.txt
+mkdir -p ~/.config/age
+install -m 600 /path/to/carried/garsync.txt ~/.config/age/garsync.txt   # BSD install has no -D
 age-keygen -y ~/.config/age/garsync.txt   # must print the recipient above
 ```
 
@@ -67,8 +72,10 @@ make setup
 make check        # must end with "✓ All checks passed"
 ```
 
-Clone to the same path (`~/Projects/garsync`) when possible: Claude Code's per-project memory
-directory is named after the absolute path, and the dotfiles link is created for that name.
+Clone to `~/Projects/garsync`. Claude Code names its per-project memory directory after the
+*absolute* path, so on macOS it becomes `-Users-<user>-Projects-garsync` rather than
+`-home-<user>-…`; the dotfiles setup derives the vault link from the absolute path (`setup-linux.sh`;
+macOS setup is tracked in dotfiles#2013), so run it after the clone and check that `~/.claude/projects/*garsync/memory` resolves into the vault.
 
 ## 3. The database
 
