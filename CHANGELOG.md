@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/mlorentedev/garsync/compare/v0.3.1...v0.3.2) (2026-10-07)
+
+
+### Bug Fixes
+
+* **dependabot:** an update-types ignore never holds a security update, plus three lessons ([#137](https://github.com/mlorentedev/garsync/issues/137)) ([572b25c](https://github.com/mlorentedev/garsync/commit/572b25c879392efe239eccacae6810a1a003f273))
+
 ## [0.3.1](https://github.com/mlorentedev/garsync/compare/v0.3.0...v0.3.1) (2026-10-07)
 
 
