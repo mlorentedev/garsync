@@ -10,7 +10,11 @@ DAYS ?= 7
 DB ?= data/garsync.db
 SMOKE_PORT ?= 8099
 
-export SOPS_AGE_KEY_FILE ?= /home/manu/.config/age/garsync.txt
+# garsync's secrets are encrypted to a dedicated age identity, not the machine-wide one. A plain
+# `SOPS_AGE_KEY_FILE ?=` loses to a shell that already exports the machine-wide key, so the
+# project key gets its own name and is assigned unconditionally. Override: make sync GARSYNC_AGE_KEY=...
+GARSYNC_AGE_KEY ?= $(HOME)/.config/age/garsync.txt
+export SOPS_AGE_KEY_FILE := $(GARSYNC_AGE_KEY)
 
 .DEFAULT_GOAL := help
 
@@ -203,7 +207,7 @@ dev-ui:
 sync:
 	@mkdir -p data
 	@sops -d --input-type dotenv --output-type dotenv secrets.env.enc > .env.tmp 2>/dev/null || \
-		(echo "Error: Failed to decrypt secrets. Check SOPS_AGE_KEY_FILE." && exit 1)
+		(echo "Error: Failed to decrypt secrets. Check GARSYNC_AGE_KEY ($(GARSYNC_AGE_KEY))." && exit 1)
 	@set -a && . .env.tmp && set +a && \
 		$(POETRY) run garsync --days $(DAYS) --activities-limit 100 --db data/garsync.db --verbose || true
 	@rm -f .env.tmp
