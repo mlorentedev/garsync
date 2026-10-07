@@ -36,6 +36,21 @@ updates:
       - dependency-name: "astro"
         update-types:
           - "version-update:semver-major"
+      # Tailwind v4 and TypeScript 7 are the other two halves of that same migration
+      # (ADR-014: astro 7 + Tailwind v4 + TS 7 are one change, owned by #62), and
+      # PR #126 bundled them into the group, where they fail `frontend` and would
+      # hold the group's patch bumps hostage.
+      # (a) WHY NOT NOW — Tailwind v4 drops the `@astrojs/tailwind` integration the
+      #     frontend builds through; TypeScript 7 lands with the astro major. #62.
+      # (b) WHAT IS EXPOSED — nothing: both are build-time tools, absent from the
+      #     static output and from the Docker runtime. No open alert names either.
+      # (c) WHAT REOPENS IT — #62 starting, or an advisory against either package.
+      - dependency-name: "tailwindcss"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
