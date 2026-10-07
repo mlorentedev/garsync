@@ -38,6 +38,7 @@ the decision register is
 | `tests/` | pytest suite; `tests/api/` covers routes and auth, `test_integration_full.py` is the end-to-end path |
 | `docs/adr/` | Architecture Decision Records — the *why* |
 | `docs/architecture/` | Design of record, scope register, research briefs, ticket plan |
+| `docs/runbooks/` | Operating procedures — `onboard-new-machine.md` lists what a clone does not carry (age key, database) |
 | `docs/lessons/` | One lesson per file + `_index.md`; `docs/lessons.md` is a pointer stub |
 | `scripts/` | Toolchain-free guards run by CI: `check-lessons.sh`, `check-actions-pinned.sh` |
 | `harness/` | Review gates read by `dotf`: `review-attestation.json`, `reviewer-pool.json` |
