@@ -44,7 +44,9 @@ updates:
       #     frontend builds through; TypeScript 7 lands with the astro major. #62.
       # (b) WHAT IS EXPOSED — nothing: both are build-time tools, absent from the
       #     static output and from the Docker runtime. No open alert names either.
-      # (c) WHAT REOPENS IT — #62 starting, or an advisory against either package.
+      # (c) WHAT REOPENS IT — #62 starting, or an open alert against either package.
+      #     The ignore may also suppress a security PR whose fix ships only in the
+      #     major, so the trigger is the alert list (which it never hides), not a PR.
       - dependency-name: "tailwindcss"
         update-types:
           - "version-update:semver-major"
