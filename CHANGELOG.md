@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/mlorentedev/garsync/compare/v0.3.0...v0.3.1) (2026-10-07)
+
+
+### Bug Fixes
+
+* **ci:** move PR-Agent off the retired mimo-v2.5 model ([#124](https://github.com/mlorentedev/garsync/issues/124)) ([4334b62](https://github.com/mlorentedev/garsync/commit/4334b6251053e3eb3f1d71cf3725a293ca50a1ec))
+* **make:** decrypt with garsync's own age key, and document what a clone does not carry ([#132](https://github.com/mlorentedev/garsync/issues/132)) ([eec3b11](https://github.com/mlorentedev/garsync/commit/eec3b1154dd41e0e5ada707d575eac424355905d))
+
 ## [0.3.0](https://github.com/mlorentedev/garsync/compare/v0.2.3...v0.3.0) (2026-09-25)
 
 
