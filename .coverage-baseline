@@ -4,6 +4,43 @@
 # than 2 points below this number. Raising it is a deliberate, reviewable act:
 # add the tests that close the gap, then move the number in the same commit.
 #
+# Measured 2026-09-25 on `feat/ingest-ledger-idempotent-writes` (SUB-002, the ledger's answers — block 6):
+#   pytest --cov=garsync -m "not e2e"   332 passed, 1074 statements, 135 missed
+#   TOTAL 87% (87.43)
+#
+# Raised from 86.94 by block 6: the SC-02(3) coverage queries and the `updated_at` guard. `repository.py`
+# is back to 100% — every refusal it can raise has a case naming it, which is the only way a query that
+# answers "no coverage" can be told apart from a query that was never asked.
+#
+# Measured 2026-09-25 on `feat/ingest-ledger-idempotent-writes` (SUB-002, the per-class run):
+#   pytest --cov=garsync -m "not e2e"   301 passed, 1034 statements, 135 missed
+#   TOTAL 87% (86.94)
+#
+# Raised from 85.88 by the run's own tests (AC1/AC4/AC5) and by two guards that close branches the
+# suite had never reached: `Window.days()` refusing to enumerate a minute-resolved class, and
+# `activity_to_row` reading the UTC instant out of the payload instead of a zone.
+#
+# Measured 2026-09-25 on `feat/ingest-ledger-idempotent-writes` (SUB-002, ledger counts — block 4):
+#   pytest --cov=garsync -m "not e2e"   277 passed, 1020 statements, 144 missed
+#   TOTAL 86% (85.88)
+#
+# Raised from 85.17, and the gap it closes was measured two commits ago: the idempotency suite (block
+# 3) carried the tree to 85.67 without moving this file, because the tick that says "raise the ratchet
+# only if the new tests lift it" lives in block 7 and nobody had read it back yet. A ratchet that lags
+# the tests it is supposed to defend lets a later commit delete coverage and still pass, so it is set
+# to what the tree measures now, in the commit that adds the tests keeping it there — `TestLedgerCounts`
+# and `0003_ledger_counts`, whose two columns and NULL-on-purpose default are the new statements. The
+# rest of the diff is the pipeline extraction, which measured the same before and after.
+#
+# Measured 2026-09-25 on `feat/ingest-ledger-idempotent-writes` (SUB-002, first cycle — the window
+# rule):
+#   pytest --cov=garsync -m "not e2e"   236 passed, 971 statements, 144 missed
+#   TOTAL 85% (85.17)
+#
+# Raised from 84.07 by the tests that arrived with `src/garsync/ingest/window.py` — 64 of the 67 new
+# statements, covered 100% by the fifteen table-driven cases that pin the coverage watermark (settle,
+# granularity, the 14-day floor, gap chunking, the DST fold, the ≈71-call arithmetic).
+#
 # Measured 2026-09-25 on `feat/alembic-schema-migration` (SUB-001):
 #   pytest --cov=garsync -m "not e2e"   219 passed, 904 statements, 144 missed
 #   TOTAL 84% (84.07)
@@ -18,4 +55,4 @@
 #   src/garsync/exporter.py     0%   (declared, not yet wired to a route or the CLI)
 #   src/garsync/db/backup.py   59%   (the CLI entry point; the snapshot itself is covered)
 #   src/garsync/__main__.py     0%   (module entry point)
-84.07
+87.43
