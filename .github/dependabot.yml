@@ -45,8 +45,8 @@ updates:
       # (b) WHAT IS EXPOSED — nothing: both are build-time tools, absent from the
       #     static output and from the Docker runtime. No open alert names either.
       # (c) WHAT REOPENS IT — #62 starting, or an open alert against either package.
-      #     The ignore may also suppress a security PR whose fix ships only in the
-      #     major, so the trigger is the alert list (which it never hides), not a PR.
+      #     The ignore holds back version updates only: a security update still opens
+      #     its PR whatever this says (lesson 021, PR #66), and that PR is the trigger.
       - dependency-name: "tailwindcss"
         update-types:
           - "version-update:semver-major"

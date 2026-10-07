@@ -53,7 +53,7 @@ SOPS_AGE_KEY_FILE=~/.config/age/garsync.txt \
   sops --input-type dotenv --output-type dotenv secrets.env.enc
 ```
 
-`--input-type dotenv` is required: without it sops guesses JSON from the `.enc` extension and fails
+`--input-type dotenv` is required: without it sops treats the unknown `.enc` extension as its binary store (lesson 037) and fails
 with `invalid character … looking for beginning of value`, which looks like a key problem and is
 not one.
 
