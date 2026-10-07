@@ -27,7 +27,7 @@ machine-wide key (`~/.config/age/key.txt`, `~/.config/sops/age/keys.txt`) **does
 it was removed with `sops updatekeys` after SEC-001.
 
 ```sh
-install -m 600 /path/to/carried/garsync.txt ~/.config/age/garsync.txt
+install -D -m 600 /path/to/carried/garsync.txt ~/.config/age/garsync.txt
 age-keygen -y ~/.config/age/garsync.txt   # must print the recipient above
 ```
 
@@ -40,6 +40,14 @@ SOPS_AGE_KEY_FILE=~/.config/age/garsync.txt \
   sops -d --input-type dotenv --output-type dotenv secrets.env.enc >/dev/null; echo $?   # 0
 ```
 
+To edit the secrets (the Makefile's export applies only inside its own recipes, so an
+interactive shell needs the key named explicitly):
+
+```sh
+SOPS_AGE_KEY_FILE=~/.config/age/garsync.txt \
+  sops --input-type dotenv --output-type dotenv secrets.env.enc
+```
+
 `--input-type dotenv` is required: without it sops guesses JSON from the `.enc` extension and fails
 with `invalid character … looking for beginning of value`, which looks like a key problem and is
 not one.
@@ -47,27 +55,7 @@ not one.
 If this key is lost, the Garmin credentials can be re-entered and re-encrypted to a new identity.
 Nothing else depends on it.
 
-## 2. The database
-
-As of 2026-10-06 the real database is still **schema v1** (`schema_version = 1`, no
-`alembic_version` table): 100 activities, 4 biometrics days, 4 sleep days, 9 `sync_log` rows, last
-biometrics day 2026-03-01. The v1→v2 migration has been run on a copy only (SUB-001).
-
-```sh
-mkdir -p data && cp /path/to/carried/garsync.db data/garsync.db
-make db-backup     # snapshot before anything opens it
-```
-
-The first process that opens it with current `master` runs the Alembic chain and migrates it to
-v2, after taking its own snapshot (`src/garsync/db/schema.py`). Keep the carried copy until the
-migrated database has been checked.
-
-**Do not count on re-syncing from Garmin to rebuild it.** As of late September 2026 Garmin's edge
-returned 429 (mobile) and a Cloudflare 403 (portal) with no token cache, and retrying a
-rate-limited login prolongs the block (lesson 030, which lands with PR #131). Running `make sync` repeatedly to "test" the
-new machine makes this worse.
-
-## 3. Toolchain and the gate
+## 2. Toolchain and the gate
 
 Match what CI runs: **Python 3.12** and **Node 22** (`.github/workflows/`). Poetry is not pinned
 (#116); on the old machine the local `.venv` had drifted to Python 3.13.11 while CI runs 3.12 (Poetry 2.2.1, Node 24 locally). On a fresh machine, pin it before `make setup`: `poetry env use python3.12`.
@@ -81,6 +69,30 @@ make check        # must end with "✓ All checks passed"
 
 Clone to the same path (`~/Projects/garsync`) when possible: Claude Code's per-project memory
 directory is named after the absolute path, and the dotfiles link is created for that name.
+
+## 3. The database
+
+As of 2026-10-06 the real database is still **schema v1** (`schema_version = 1`, no
+`alembic_version` table): 100 activities, 4 biometrics days, 4 sleep days, 9 `sync_log` rows, last
+biometrics day 2026-03-01. The v1→v2 migration has been run on a copy only (SUB-001).
+
+Run this from the repository root, after `make setup` and before anything opens the database
+(`make check` uses temporary databases and does not):
+
+```sh
+cd ~/Projects/garsync
+mkdir -p data && cp /path/to/carried/garsync.db data/garsync.db
+make db-backup     # snapshot before anything opens it
+```
+
+The first process that opens it with current `master` runs the Alembic chain and migrates it to
+v2, after taking its own snapshot (`src/garsync/db/schema.py`). Keep the carried copy until the
+migrated database has been checked.
+
+**Do not count on re-syncing from Garmin to rebuild it.** As of late September 2026 Garmin's edge
+returned 429 (mobile) and a Cloudflare 403 (portal) with no token cache, and retrying a
+rate-limited login prolongs the block (lesson 030, which lands with PR #131). Running `make sync` repeatedly to "test" the
+new machine makes this worse.
 
 ## 4. Where the work stood at migration (2026-10-06)
 
