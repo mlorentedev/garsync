@@ -1,0 +1,86 @@
+[
+  {
+    "id": "SUB-002-f1",
+    "behavior": "AC1 \u2014 one run, one transaction, one ledger row: a failing run leaves zero data rows, zero success rows and exactly one error row written after the rollback; a successful run commits its success row with its data",
+    "verification": "poetry run pytest tests/test_sync_pipeline.py -q -k TestAtomicRun",
+    "state": "verified",
+    "evidence": "`poetry run pytest tests/test_sync_pipeline.py -q -k TestAtomicRun` -> exit 0, 3 selected case(s) green (block 5, re-run over the whole branch 2026-09-25)"
+  },
+  {
+    "id": "SUB-002-f2",
+    "behavior": "AC2 \u2014 atomicity is not broken by the repositories: with BEGIN IMMEDIATE open a repository write cannot end the caller's transaction, a mid-batch failure rolls back every row of that batch, and a bare commit() inside the explicit transaction is pinned as the negative control",
+    "verification": "poetry run pytest tests/test_transaction.py -q",
+    "state": "verified",
+    "evidence": "`poetry run pytest tests/test_transaction.py -q` -> exit 0, 6 selected case(s) green (blocks 1-4, re-run over the whole branch 2026-09-25)"
+  },
+  {
+    "id": "SUB-002-f3",
+    "behavior": "AC3 \u2014 the window rule is per class and bounded: minute-truncated UTC for activities, the local GARSYNC_TZ day (today) for the daily classes, a 14-day floor, a 30-day gap closed in <=14-day chunks, and the measured call arithmetic",
+    "verification": "poetry run pytest tests/test_window.py -q",
+    "state": "verified",
+    "evidence": "`poetry run pytest tests/test_window.py -q` -> exit 0, 22 selected case(s) green (blocks 1-4, re-run over the whole branch 2026-09-25)"
+  },
+  {
+    "id": "SUB-002-f4",
+    "behavior": "AC4 \u2014 the cursor is a coverage watermark: a zero-row run still advances it, a failed run does not, it is never the run's wall clock, it is read by ledger id rather than created_at, and the activities cursor stays NULL until SUB-003",
+    "verification": "poetry run pytest tests/test_repository_ingest_run.py -q -k TestCursors",
+    "state": "verified",
+    "evidence": "`poetry run pytest tests/test_repository_ingest_run.py -q -k TestCursors` -> exit 0, 6 selected case(s) green (block 5, re-run over the whole branch 2026-09-25)"
+  },
+  {
+    "id": "SUB-002-f5",
+    "behavior": "AC5 \u2014 no lock is held across the fetch: a blocking client stub observes conn.in_transaction is False and a second writer commits while it is blocked",
+    "verification": "poetry run pytest tests/test_sync_pipeline.py -q -k TestNoLockAcrossTheFetch",
+    "state": "verified",
+    "evidence": "`poetry run pytest tests/test_sync_pipeline.py -q -k TestNoLockAcrossTheFetch` -> exit 0, 2 selected case(s) green (block 5, re-run over the whole branch 2026-09-25)"
+  },
+  {
+    "id": "SUB-002-f6",
+    "behavior": "AC6 \u2014 idempotency is literal and proven on a strictly narrower payload: byte-identical re-pull changes nothing, a narrower payload loses no known value in activities, daily_metrics or sleep_sessions, and a real value change still lands",
+    "verification": "poetry run pytest tests/test_idempotency.py -q -k TestNarrowerRepull",
+    "state": "verified",
+    "evidence": "`poetry run pytest tests/test_idempotency.py -q -k TestNarrowerRepull` -> exit 0, 9 selected case(s) green (blocks 1-4, re-run over the whole branch 2026-09-25)"
+  },
+  {
+    "id": "SUB-002-f7",
+    "behavior": "AC7 \u2014 the ledger counts reality: rows_upserted is the number of rows whose values changed, rows_fetched is what the adapter returned, and the declared canonical-serialisation pass is the only one allowed to report changes",
+    "verification": "poetry run pytest tests/test_idempotency.py -q -k TestLedgerCounts",
+    "state": "verified",
+    "evidence": "`poetry run pytest tests/test_idempotency.py -q -k TestLedgerCounts` -> exit 0, 4 selected case(s) green (blocks 1-4, re-run over the whole branch 2026-09-25)"
+  },
+  {
+    "id": "SUB-002-f8",
+    "behavior": "AC8 \u2014 nothing reads updated_at as a change signal: every occurrence in src/ is a write, and no incremental decision is taken from a row timestamp",
+    "verification": "poetry run pytest tests/test_updated_at_guard.py -q",
+    "state": "verified",
+    "evidence": "`poetry run pytest tests/test_updated_at_guard.py -q` -> exit 0, 19 selected case(s) green (block 6, re-run over the whole branch 2026-09-25)"
+  },
+  {
+    "id": "SUB-002-f9",
+    "behavior": "AC9 \u2014 SC-02(3) is answerable from committed data alone (asked-nothing-yet and no-data-for-day-D) and no raw_payload table exists before its first real writer",
+    "verification": "poetry run pytest tests/test_ledger_coverage.py -q",
+    "state": "verified",
+    "evidence": "`poetry run pytest tests/test_ledger_coverage.py -q` -> exit 0, 12 selected case(s) green (block 6, re-run over the whole branch 2026-09-25)"
+  },
+  {
+    "id": "SUB-002-f10",
+    "behavior": "AC10 \u2014 /api/sync/status and the four route suites are unchanged and green, and the whole gate passes without lowering the coverage baseline",
+    "verification": "make check",
+    "state": "verified",
+    "evidence": "`make check` -> exit 0: ruff, mypy --strict, 332 tests, astro check+build, docs build, coverage 87.43% over a floor of 85.43% (re-run after block 6, 2026-09-25)"
+  },
+  {
+    "id": "SUB-002-f11",
+    "behavior": "AC11 \u2014 the knowledge is recorded in this PR: the ADR-008 amendment exists and every new lesson is paired with its docs/lessons/_index.md row",
+    "verification": "grep -q 'SUB-002' docs/adr/adr-008-ingestion-ledger-and-adapters.md && bash scripts/check-lessons.sh",
+    "state": "verified",
+    "evidence": "`grep -q 'SUB-002' docs/adr/adr-008-ingestion-ledger-and-adapters.md && bash scripts/check-lessons.sh` -> exit 0, ADR-008 names SUB-002 and `check-lessons` reports 33 lessons, index paired (SUB-002 block 5, 2026-09-25, branch feat/ingest-ledger-idempotent-writes)"
+  },
+  {
+    "id": "SUB-002-f12",
+    "behavior": "AC12 \u2014 the migration is additive and idempotent: 0003 lands the same schema from a v1 fixture and from a v2 database, adds only rows_fetched/started_at, and the real database is still only migrated on a tmp_path copy",
+    "verification": "poetry run pytest tests/test_migrations.py -q -k 'Revision0003 or upgrading_twice'",
+    "state": "pending",
+    "evidence": "`poetry run pytest tests/test_migrations.py -q -k 'Revision0003 or upgrading_twice'` -> exit 0 but selects 1 case, `test_upgrading_twice_changes_nothing`, written for 0002: no test in tests/test_migrations.py mentions 0003, rows_fetched or started_at, so the command proves nothing about AC12 (lesson 034). Block 7 writes the 0003 chain test and this command widens with it; until then the criterion rests on a hand-run rehearsal only."
+  }
+]
