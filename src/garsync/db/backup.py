@@ -38,7 +38,9 @@ def snapshot(conn: sqlite3.Connection, db_path: Path, taken_at: datetime | None 
     if target.exists():
         raise FileExistsError(f"refusing to overwrite an existing snapshot: {target}")
     target.parent.mkdir(parents=True, exist_ok=True)
-    conn.commit()  # `VACUUM INTO` cannot run inside a transaction
+    # `VACUUM INTO` cannot run inside a transaction. A connection from `db.connection.get_connection`
+    # never has one open (`isolation_level=None`), so this guards a connection built elsewhere.
+    conn.commit()
     conn.execute("VACUUM INTO ?", (str(target),))
     return target
 
