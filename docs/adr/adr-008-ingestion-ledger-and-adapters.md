@@ -71,6 +71,82 @@ Three more sources are about to arrive (a scale, nutrition, and optionally an ag
 
 - The adapter interface is where the *next* source lands, which is the whole point: the scale pillar and the nutrition pillar plug in without touching the core.
 
+## Amendment — 2026-09-25, the ledger's contract (SUB-002)
+
+Implements §2–§5, §8 and §13 above. Four of them needed a ruling because the text could not be
+implemented as read; the rulings are recorded here rather than in the spec, because the spec is
+archived and this is not. The spec is `specs/SUB-002/` (issue #83).
+
+1. **§2 and §3 contradict each other, and the resolution is a rule about which row goes where.** §2
+   says the ledger row and the data rows commit together and that a failure rolls back; §3 says the
+   ledger carries `status` and `error`. A rolled-back transaction cannot also leave the error row §3
+   promises, and §3's *success* row is what SC-10 and SC-19 read. **Ruling: a success row commits
+   inside the data transaction** (invariant — *a success row implies committed data*), and **an error
+   row is written after the rollback, in its own transaction, best-effort.** SC-10's alarm is therefore
+   keyed on the **absence of success** (its second clause, which derives entirely from committed rows),
+   and the error row is a diagnostic, never the signal — an alarm whose only trace is a best-effort
+   write is an alarm with a silent failure mode. Mechanically: the writer takes the transaction from the
+   driver (`isolation_level=None`, explicit `BEGIN IMMEDIATE`) so a run is one transaction, and the
+   repositories must not commit through it — a per-row `commit()` inside an explicit `BEGIN` **ends**
+   the run's transaction (measured; lesson 028). The busy timeout stays at the driver's 5000 ms, now
+   stated where the setting is owned instead of left implicit (lesson 029).
+
+2. **§4's companion row in `raw_payload` is not created per table, and not in SUB-002 at all.** §4's
+   "retains the upstream response … so any window can be replayed" together with §12's asymmetry
+   (Garmin is re-queryable, FitDays is not) puts **the same payload in two places**, which makes a
+   replay's result depend on which copy is read — an SSOT violation with two retention windows.
+   **Ruling: Garmin summary payloads stay in each row's existing `raw_data`, permanent, and are never
+   duplicated.** `raw_payload` earns its place only for what no other row carries — FitDays weight
+   measurements (SCALE-001, permanent) and `activity_streams` (SUB-004, 90-day cache) — and **its first
+   writer creates the table**, so no speculative table precedes one. The case that looked like an
+   exception is answered from the ledger itself: for SC-02(3)'s *"not uploaded yet"* vs *"no data"*,
+   `status='success'` with the covered window in `cursor_before/after` and `rows_fetched=0` records *we
+   asked and nothing was there*, and the absence of a row in the class's table records *no data* — both
+   committed, unlike a best-effort payload write. Disk was never the constraint: the measured payloads
+   are 3586 B/activity, 16880 B/day and 701 B/night, ≈8 MB/year against §9's 5 GiB ceiling.
+
+3. **§5's "zero changed values" is the literal reading, and it is one documented statement.** The
+   alternative — compare payload columns except `updated_at` — makes §5 permanently false and replaces
+   the contract with a hand-maintained column list (lesson 026). The implementation is
+   `ON CONFLICT(key) DO UPDATE SET … WHERE excluded.col IS NOT table.col OR …`, which SQLite's own
+   documentation describes as *"optionally change the DO UPDATE into a no-op depending on the original
+   and/or new values"*, states follows PostgreSQL's syntax, and dates to 3.24.0 (2018-06-04); measured,
+   an identical re-pull leaves `changes()` = 0. **A second rule is needed for absence**: a field the
+   request did not supply must not reach the database as `NULL` over a known value, so
+   `col = COALESCE(excluded.col, table.col)` over the columns a class's request may legitimately not
+   supply, under the invariant *erasing a known value requires an explicit action, never a re-pull*.
+   That is the opposite of RFC 7396 (JSON Merge Patch), where `null` means *remove*, and the deviation is
+   deliberate: we merge a vendor payload whose incompleteness is the thing being defended against, not a
+   patch of user intent, and the newest payload stays in `raw_data` so a retained value is auditable
+   against the response that no longer carried it. `rows_upserted` therefore means *rows whose values
+   changed*, `rows_fetched` is added beside it, and `raw_data` is written canonically so the diff
+   predicate cannot fire on key order alone (lesson 031).
+
+4. **§13's trailing window is a per-class policy, and the cursor records coverage.** "Re-derives a
+   trailing window (14 days initially)" becomes `window_end = truncate(now − settle, granularity)` per
+   class — activities 45 min / minute / UTC; the daily classes local-day, **including today**, because
+   the 07:00 run exists to ingest last night's sleep and Garmin keys sleep to the wake date — with a
+   14-day floor, and `cursor_after` = **the end of the last successfully covered window**: not the last
+   record seen (a rest day would never advance it, and the alarm could not then tell a holiday from
+   breakage) and not the run's wall clock (that duplicates `created_at` and lies about a class still
+   being revised). The cursor's only functional role is the **left** edge after a gap longer than the
+   floor, and a gap is closed in ≤14-day chunks so a run's call count stays bounded (≈5 calls/day × 14
+   days + the activity list ≈ 71). Its day spelling is the storage spelling of a *coverage window*, not
+   an attribution: which calendar day a **row** belongs to stays open in #115, with the boundary that no
+   consumer may derive an attribution from the cursor. This is a composition of existing practice rather
+   than an invention — dlt's *lag / attribution window*, Airbyte's `lookback_window`, and Airflow's
+   `data_interval` ("a DAG run is usually scheduled after its associated data interval has ended, to
+   ensure the run is able to collect all the data within the time period") each solve a part of it; what
+   is ours is that the *state* is coverage rather than a record value, which is what all three
+   work around.
+
+5. **§8's rate-limit posture, observed.** The first live login of SUB-002 was refused at the network
+   edge — 429 from Garmin's mobile endpoints and a Cloudflare 403 on the portal, on every strategy, with
+   no cached token to fall back on — and the client's own retry ladder multiplied it to roughly a dozen
+   rejected requests in seconds (lesson 030). The measured risk is Cloudflare and 429, so the mitigation
+   is a **token cache as the primary path** with the credential path as the fallback, and a retry policy
+   that classifies before retrying: never retry a refusal.
+
 ## References
 
 - `docs/architecture/research/02-garmin-ingestion-and-realtime.md`, `research/03-selfhosted-health-platforms.md`
