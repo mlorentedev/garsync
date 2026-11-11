@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>mlorentedev/ci-workflows//renovate/default#v0.5.0"
+  ],
+  "packageRules": [
+    {
+      "description": "Astro, Tailwind CSS and TypeScript majors are held while the frontend is on Tailwind v3. ADR-014 records the policy and what reopens it. A security update still arrives through Dependabot security updates, which this file does not control.",
+      "matchFileNames": [
+        "frontend/**"
+      ],
+      "matchPackageNames": [
+        "astro",
+        "tailwindcss",
+        "typescript"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    }
+  ]
+}

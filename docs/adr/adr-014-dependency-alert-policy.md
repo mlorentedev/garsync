@@ -136,6 +136,6 @@ Why the bump cannot simply be taken, and why the ignore exists at all:
 - Evidence: `gh api repos/mlorentedev/garsync/dependabot/alerts?state=open` (2026-09-25, 10 alerts — 1/2/5/2);
   the `frontend` job log of PR #66 (2026-09-09, `ERESOLVE` on `@astrojs/tailwind@6`); `npm ci` + `sharp.versions`
   (`0.35.4` / `vips 8.18.6` / `heif 1.23.2`); `docs-site/package-lock.json` (astro 7.3.4)
-- Files: `.github/dependabot.yml`, `frontend/package.json`, `frontend/astro.config.mjs`, `Dockerfile`
+- Files: `renovate.json` (`.github/dependabot.yml` until 2026-11-11), `frontend/package.json`, `frontend/astro.config.mjs`, `Dockerfile`
 - [`docs/architecture/ticket-plan.md`](../architecture/ticket-plan.md) §2 · SC-register: not scope-bearing
   (this is an engineering policy, not a product decision)
