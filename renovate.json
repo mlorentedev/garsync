@@ -5,12 +5,24 @@
   ],
   "packageRules": [
     {
-      "description": "Astro, Tailwind CSS and TypeScript majors are held while the frontend is on Tailwind v3. ADR-014 records the policy and what reopens it. A security update still arrives through Dependabot security updates, which this file does not control.",
+      "description": "Astro majors are held while the frontend is on the Tailwind v3 integration (ADR-014, docs/adr/adr-014-dependency-alert-policy.md). (a) Why not now: astro 6 replaced @astrojs/tailwind with @tailwindcss/vite, and @astrojs/tailwind@6 peers astro ^3 || ^4 || ^5, so every astro major fails npm ci with ERESOLVE (PR #66's frontend job, 2026-09-09); astro 7 and Tailwind v4 are one migration, CHORE-003 (#62). (b) What is exposed: nothing reachable in the deployed artifact. Astro is build-time only (static output, no adapter, no server process in the Docker runtime), frontend/src never uses astro:assets or <Image>, and the lock installs sharp 0.35.4, the fix the critical advisory names (verified with npm ci, 2026-09-25). (c) What reopens it: an SSR adapter or output: server; astro's image service on untrusted input; a public build of the frontend; the frontend moving to Tailwind v4 for any other reason; or any advisory a static build can reach. This holds back version updates only: alerts stay visible (#64), and a security update still opens its PR through Dependabot security updates.",
       "matchFileNames": [
         "frontend/**"
       ],
       "matchPackageNames": [
-        "astro",
+        "astro"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Tailwind CSS and TypeScript majors are the other two halves of the same migration (ADR-014: astro 7, Tailwind v4 and TypeScript 7 are one change, owned by #62); PR #126 bundled them into the group, where they failed frontend and held the group's patch bumps hostage. (a) Why not now: Tailwind v4 drops the @astrojs/tailwind integration the frontend builds through, and TypeScript 7 lands with the astro major. (b) What is exposed: nothing; both are build-time tools, absent from the static output and the Docker runtime, and no open alert names either. (c) What reopens it: #62 starting, or an open alert against either package. A security update still opens its PR whatever this says (lesson 021, PR #66), and that PR is the trigger.",
+      "matchFileNames": [
+        "frontend/**"
+      ],
+      "matchPackageNames": [
         "tailwindcss",
         "typescript"
       ],
