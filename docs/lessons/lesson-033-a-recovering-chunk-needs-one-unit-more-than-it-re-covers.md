@@ -1,7 +1,8 @@
 ---
-id: lesson-033-a-recovering-chunk-needs-one-unit-more-than-it-re-covers
+id: "lesson-033-a-recovering-chunk-needs-one-unit-more-than-it-re-covers"
 type: lesson
 status: active
+title: "A re-covering chunk needs one unit more than it re-covers"
 created: "2026-09-25"
 owner: manu
 tags: [garsync, lesson, ingestion, cursors, windowing, arithmetic, gotcha]

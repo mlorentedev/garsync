@@ -1,7 +1,8 @@
 ---
-id: lesson-035-an-empty-list-is-a-claim-about-the-body
+id: "lesson-035-an-empty-list-is-a-claim-about-the-body"
 type: lesson
 status: active
+title: "An empty list is a claim about the data, so refusing is sometimes the only honest answer"
 created: "2026-09-25"
 owner: manu
 tags: [garsync, lesson, api-design, queries, ingestion, failure-modes]

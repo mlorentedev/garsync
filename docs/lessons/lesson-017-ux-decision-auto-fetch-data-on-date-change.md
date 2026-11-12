@@ -1,7 +1,8 @@
 ---
-id: lesson-017-ux-decision-auto-fetch-data-on-date-change
+id: "lesson-017-ux-decision-auto-fetch-data-on-date-change"
 type: lesson
 status: active
+title: "UX Decision: Auto-fetch Data on Date Change"
 created: "2026-05-29"
 recorded: "2026-03-01"
 owner: manu

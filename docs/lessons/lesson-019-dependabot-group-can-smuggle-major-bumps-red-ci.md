@@ -1,3 +1,13 @@
+---
+id: "lesson-019-dependabot-group-can-smuggle-major-bumps-red-ci"
+type: lesson
+status: active
+title: "Lesson-019: A grouped dependabot update can smuggle major bumps — red CI on a bump-only change"
+created: "2026-09-07"
+owner: manu
+tags: [garsync, lesson, dependabot, ci, npm]
+---
+
 # Lesson-019: A grouped dependabot update can smuggle major bumps — red CI on a bump-only change
 
 - **Context:** dependabot PR #54 (2026-09-07) grouped `nanostores` (minor), `tailwindcss` 3→4 and `typescript` 6→7 in one update. CI's frontend job failed at `npm ci` with `ERESOLVE`: `@astrojs/check@0.9.10` declares peer `typescript@^5.0.0 || ^6.0.0`, so TypeScript 7 (the Go port) cannot resolve.

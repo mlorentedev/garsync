@@ -1,7 +1,8 @@
 ---
-id: lesson-026-moving-a-writer-without-its-reader-freezes-an-endpoint
+id: "lesson-026-moving-a-writer-without-its-reader-freezes-an-endpoint"
 type: lesson
 status: active
+title: "Moving a writer without its reader freezes an endpoint silently"
 created: "2026-09-25"
 owner: manu
 tags: [garsync, lesson, sqlite, refactor, api, testing, gotcha]

@@ -1,7 +1,8 @@
 ---
-id: lesson-025-a-payload-carried-offset-beats-a-configured-zone
+id: "lesson-025-a-payload-carried-offset-beats-a-configured-zone"
 type: lesson
 status: active
+title: "A payload-carried offset beats a configured zone"
 created: "2026-09-25"
 owner: manu
 tags: [garsync, lesson, timezones, migrations, garmin, testing, gotcha]

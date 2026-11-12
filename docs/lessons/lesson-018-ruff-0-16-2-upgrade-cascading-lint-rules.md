@@ -1,7 +1,8 @@
 ---
-id: lesson-018-ruff-0-16-2-upgrade-cascading-lint-rules
+id: "lesson-018-ruff-0-16-2-upgrade-cascading-lint-rules"
 type: lesson
 status: active
+title: "Ruff 0.16.2 Upgrade: Cascading Lint Rules"
 created: "2026-08-11"
 recorded: "2026-08-12"
 owner: manu

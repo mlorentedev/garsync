@@ -1,7 +1,8 @@
 ---
-id: lesson-031-a-stored-payload-is-not-a-change-signal-unless-its-serialisation-is-canonical
+id: "lesson-031-a-stored-payload-is-not-a-change-signal-unless-its-serialisation-is-canonical"
 type: lesson
 status: active
+title: "A stored payload is not a change signal unless its serialisation is canonical"
 created: "2026-09-25"
 owner: manu
 tags: [garsync, lesson, idempotency, json, sqlite, testing, gotcha]

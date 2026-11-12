@@ -1,14 +1,15 @@
 ---
-id: lesson-038-a-reviewer-claim-about-tool-behaviour-is-checked-against-the-lessons-first
+id: "lesson-038-a-reviewer-claim-about-tool-behaviour-is-checked-against-the-lessons-first"
 type: lesson
 status: active
+title: "A reviewer's claim about a tool's behaviour is checked against the repo's lessons before it is applied"
 created: "2026-10-06"
 owner: manu
 tags: [review, dependabot, process, gotcha]
 related: [lesson-021-dependabot-ignore-cannot-suppress-a-security-update]
 ---
 
-# Lesson 038 — A reviewer's claim about a tool's behaviour is checked against the repo's lessons before it is applied
+# A reviewer's claim about a tool's behaviour is checked against the repo's lessons before it is applied
 
 **Context:** PR #133 added Dependabot ignores for the Tailwind v4 and TypeScript 7 majors. PR-Agent
 flagged it as THEORETICAL, saying "ignore conditions are also applied to security-update pull

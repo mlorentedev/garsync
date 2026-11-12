@@ -1,7 +1,8 @@
 ---
-id: lesson-015-release-please-repo-setting-overrides-workflow-p
+id: "lesson-015-release-please-repo-setting-overrides-workflow-p"
 type: lesson
 status: active
+title: "Release Please: Repo Setting Overrides Workflow Permissions"
 created: "2026-05-29"
 recorded: "2026-03-01"
 owner: manu

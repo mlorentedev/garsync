@@ -1,7 +1,8 @@
 ---
-id: lesson-009-decoupling-sync-logic-and-securing-personal-heal
+id: "lesson-009-decoupling-sync-logic-and-securing-personal-heal"
 type: lesson
 status: active
+title: "Decoupling Sync Logic and Securing Personal Health APIs"
 created: "2026-05-29"
 recorded: "2026-03-07"
 owner: manu

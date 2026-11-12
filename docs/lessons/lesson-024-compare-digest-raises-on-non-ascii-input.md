@@ -1,7 +1,8 @@
 ---
-id: lesson-024-compare-digest-raises-on-non-ascii-input
+id: "lesson-024-compare-digest-raises-on-non-ascii-input"
 type: lesson
 status: active
+title: "`hmac.compare_digest` raises on non-ASCII `str`, turning an auth check into an unauthenticated 500"
 created: "2026-09-25"
 owner: manu
 tags: [garsync, lesson, python, security, auth, testing, gotcha]

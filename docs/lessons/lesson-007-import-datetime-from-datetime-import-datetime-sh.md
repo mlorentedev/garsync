@@ -1,7 +1,8 @@
 ---
-id: lesson-007-import-datetime-from-datetime-import-datetime-sh
+id: "lesson-007-import-datetime-from-datetime-import-datetime-sh"
 type: lesson
 status: active
+title: "`import datetime` + `from datetime import datetime` shadowing breaks PEP 604 unions at import time"
 created: "2026-09-05"
 owner: manu
 tags: [garsync, lesson, python, datetime, typing]

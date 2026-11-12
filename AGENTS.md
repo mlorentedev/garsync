@@ -39,8 +39,8 @@ the decision register is
 | `docs/adr/` | Architecture Decision Records — the *why* |
 | `docs/architecture/` | Design of record, scope register, research briefs, ticket plan |
 | `docs/runbooks/` | Operating procedures — `onboard-new-machine.md` lists what a clone does not carry (age key, database) |
-| `docs/lessons/` | One lesson per file + `_index.md`; `docs/lessons.md` is a pointer stub |
-| `scripts/` | Toolchain-free guards run by CI: `check-lessons.sh`, `check-actions-pinned.sh` |
+| `docs/lessons/` | One lesson per file, no committed index (`dotf lessons index` renders one); `docs/lessons.md` is a pointer stub |
+| `scripts/` | Toolchain-free guards run by CI: `check-actions-pinned.sh` (lessons are checked by `dotf lessons fmt --check`) |
 | `harness/` | Review gates read by `dotf`: `review-attestation.json`, `reviewer-pool.json` |
 | `specs/` (`specs/archive/`) | Per-feature SDD folders (proposal + tasks + verification) |
 
@@ -83,9 +83,9 @@ Build/operate knowledge lives **in this repo**, versioned with the code:
 
 - architectural decision → `docs/adr/adr-NNN-<slug>.md`
 - design/proposal → `docs/architecture/`
-- project lesson or gotcha → `docs/lessons/lesson-NNN-<slug>.md` **plus its row in
-  `docs/lessons/_index.md`** (the pairing is guarded by `scripts/check-lessons.sh`; appending to
-  `docs/lessons.md` recreates the monolith the pointer stub replaced)
+- project lesson or gotcha → `docs/lessons/lesson-NNN-<slug>.md`, formatted with `dotf lessons fmt` (CI checks it with
+  `dotf lessons fmt --check`; `dotf lessons index` renders the index, which is not committed;
+  appending to `docs/lessons.md` recreates the monolith the pointer stub replaced)
 - troubleshooting/deployment → `docs/`
 
 Cross-project insight goes to the maintainer's knowledge store (patterns, methodology); task state

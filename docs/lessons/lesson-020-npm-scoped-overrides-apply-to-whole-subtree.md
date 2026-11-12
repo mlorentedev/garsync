@@ -1,3 +1,13 @@
+---
+id: "lesson-020-npm-scoped-overrides-apply-to-whole-subtree"
+type: lesson
+status: active
+title: "Lesson-020: npm scoped overrides apply to the whole dependency subtree, not just the named package"
+created: "2026-09-07"
+owner: manu
+tags: [garsync, lesson, npm, dependencies]
+---
+
 # Lesson-020: npm scoped overrides apply to the whole dependency subtree, not just the named package
 
 - **Context:** SEC-005 paydown (PR #63, 2026-09-07): dependabot flagged transitive `sharp < 0.35.0` (high) and `esbuild >= 0.27.3, < 0.28.1` (low) in `frontend/package-lock.json`. Both are capped by astro's ranges (`sharp: ^0.34.0`, `esbuild: ^0.27.3`), so `npm update` cannot cross them; the fix is scoped overrides.

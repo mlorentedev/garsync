@@ -1,7 +1,8 @@
 ---
-id: lesson-002-garmin-api-data-availability-gaps
+id: "lesson-002-garmin-api-data-availability-gaps"
 type: lesson
 status: active
+title: "Garmin API data availability gaps"
 created: "2026-05-29"
 owner: manu
 tags: [garsync, lesson, garmin-api, data-audit, dashboard]

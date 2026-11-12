@@ -1,7 +1,8 @@
 ---
-id: lesson-012-standardizing-repository-merge-strategy-squash-a
+id: "lesson-012-standardizing-repository-merge-strategy-squash-a"
 type: lesson
 status: active
+title: "Standardizing Repository Merge Strategy (Squash and Merge)"
 created: "2026-05-29"
 recorded: "2026-03-07"
 owner: manu

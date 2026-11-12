@@ -69,12 +69,14 @@ repos:
         pass_filenames: false
         files: ^src/garsync/
 
-      # The two toolchain-free guards CI already runs (repo-hygiene.yml), wired
-      # locally so a numbering collision or an unpinned action is caught before
-      # the push rather than after it.
-      - id: check-lessons
-        name: Lesson numbering and index integrity
-        entry: bash scripts/check-lessons.sh
+      # The two guards CI already runs (repo-hygiene.yml), wired locally so a
+      # lesson format error or an unpinned action is caught before the push
+      # rather than after it.
+      # dotf is the fleet's tool; a clone without it fails this hook rather than
+      # skipping it.
+      - id: lessons-fmt
+        name: Check docs/lessons format and that no index is committed
+        entry: dotf lessons fmt --check --dir docs/lessons
         language: system
         pass_filenames: false
         files: ^docs/lessons/

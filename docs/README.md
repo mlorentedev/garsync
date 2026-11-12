@@ -8,6 +8,6 @@ Project-bound knowledge (docs-as-code). The *build/operate* layer lives here, ve
   PRs and the vault cite these numbers.
 - [`architecture/`](architecture/) — system/design docs
 - [`runbooks/`](runbooks/) — operating procedures; start with [`onboard-new-machine.md`](runbooks/onboard-new-machine.md)
-- [`lessons/`](lessons/_index.md) — accumulated gotchas & post-mortems, one file per lesson (`lessons.md` is a pointer stub)
+- [`lessons/`](lessons/) — accumulated gotchas & post-mortems, one file per lesson (`dotf lessons index` renders an index; `lessons.md` is a pointer stub)
 
 The *decide/position* layer (roadmap, prestudy, strategy) and session memory live in the maintainer's cross-project knowledge store, not committed here.

@@ -1,7 +1,8 @@
 ---
-id: lesson-028-a-begin-the-repositories-can-commit-through-is-not-a-transaction-boundary
+id: "lesson-028-a-begin-the-repositories-can-commit-through-is-not-a-transaction-boundary"
 type: lesson
 status: active
+title: "A `BEGIN` the repositories can commit through is not a transaction boundary"
 created: "2026-09-25"
 owner: manu
 tags: [garsync, lesson, sqlite, transactions, atomicity, ingestion, gotcha]
