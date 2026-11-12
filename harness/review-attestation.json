@@ -54,7 +54,8 @@
       "login": "github-actions",
       "declined_markers": [],
       "review_markers": [
-        "## PR Reviewer Guide"
+        "## PR Reviewer Guide",
+        "## Incremental PR Reviewer Guide"
       ],
       "why": "PR-Agent (see .github/workflows/pr-agent.yml) runs under GITHUB_TOKEN and publishes through the COMMENTS api, so its reviews never enter reviews[] and a classifier that looked only at reviews would read every PR-Agent-reviewed PR as unattested. The marker is the `review` command's own heading. `## PR Code Suggestions` is deliberately NOT here: suggestions are not a review, which is also why auto_improve is off on the automatic path. MARKER PROVENANCE: verified in the sibling ports before being declared here (kubelab has 215 PR comments carrying '## PR Reviewer Guide' posted by github-actions[bot], dotfiles 172, per ts-bridge #315). It has NEVER been observed in garsync, because this workflow has not run here and the NAN_API_KEY secret it needs is not set yet (Actions secrets on 2026-09-06: BITACORA_PAT only). Until the owner runs `dotf secrets sync ci --repo mlorentedev/garsync` and a pr-agent run publishes the Guide, this entry is a declaration of intent, not of an actor. github-actions[bot] also authors the release-please PRs here (#52), which is why the release exemption below is keyed on diff signature and not on this login."
     }
@@ -81,5 +82,17 @@
         "why": "Measured on #52 (v0.2.0): exactly these four paths, because release-please bumps the Python package version in pyproject.toml and src/garsync/__init__.py in addition to the manifest and changelog (release.yml, release-type python). Matched by DIFF SIGNATURE with set equality, never by author or branch. release-please runs under GITHUB_TOKEN here so its PRs are authored by github-actions[bot], the same login PR-Agent posts under; an author rule would therefore be ambiguous, and a branch rule would let any branch named release-please--* walk past the gate. The moment such a PR touches one more file the exemption stops applying, and it stops applying just as surely if one declared file is not touched. This is not 'small PRs need no review': a release commit mechanically restates commits that were each reviewed when they landed, and reporting `declined` on it says something false."
       }
     ]
+  },
+  "classification": {
+    "prefix": "Class: ",
+    "classes": [
+      "REAL",
+      "THEORETICAL",
+      "SPECULATIVE"
+    ],
+    "reviewers": [
+      "github-actions"
+    ],
+    "why": "A finding's class is read from a whole line equal to prefix + class, never parsed out of prose; a finding with no such line, or two that disagree, is unclassified and goes to a human. .pr_agent.toml asks the reviewer for exactly these lines in extra_instructions, with the paragraph shared by every repository that calls the ci-workflows pr-agent workflow. reviewers names PR-Agent (github-actions) only, because CodeRabbit writes its own severity format. Shape copied from dotfiles (TOOL-017)."
   }
 }
