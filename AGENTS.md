@@ -39,7 +39,7 @@ the decision register is
 | `docs/adr/` | Architecture Decision Records — the *why* |
 | `docs/architecture/` | Design of record, scope register, research briefs, ticket plan |
 | `docs/runbooks/` | Operating procedures — `onboard-new-machine.md` lists what a clone does not carry (age key, database) |
-| `docs/lessons/` | One lesson per file + `_index.md`; `docs/lessons.md` is a pointer stub |
+| `docs/lessons/` | One lesson per file, no committed index (`dotf lessons index` renders one); `docs/lessons.md` is a pointer stub |
 | `scripts/` | Toolchain-free guards run by CI: `check-actions-pinned.sh` (lessons are checked by `dotf lessons fmt --check`) |
 | `harness/` | Review gates read by `dotf`: `review-attestation.json`, `reviewer-pool.json` |
 | `specs/` (`specs/archive/`) | Per-feature SDD folders (proposal + tasks + verification) |
