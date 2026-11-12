@@ -1,7 +1,8 @@
 ---
-id: lesson-005-env-vars-are-captured-at-create-app-time
+id: "lesson-005-env-vars-are-captured-at-create-app-time"
 type: lesson
 status: active
+title: "Env vars are captured at `create_app()` time"
 created: "2026-09-05"
 owner: manu
 tags: [garsync, lesson, testing, env, fastapi]

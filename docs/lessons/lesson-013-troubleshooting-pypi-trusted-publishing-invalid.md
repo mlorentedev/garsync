@@ -1,7 +1,8 @@
 ---
-id: lesson-013-troubleshooting-pypi-trusted-publishing-invalid
+id: "lesson-013-troubleshooting-pypi-trusted-publishing-invalid"
 type: lesson
 status: active
+title: "Troubleshooting PyPI Trusted Publishing 'invalid-publisher' Error"
 created: "2026-05-29"
 recorded: "2026-03-07"
 owner: manu

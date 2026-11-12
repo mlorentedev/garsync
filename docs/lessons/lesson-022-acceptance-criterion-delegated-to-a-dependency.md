@@ -1,7 +1,8 @@
 ---
-id: lesson-022-acceptance-criterion-delegated-to-a-dependency
+id: "lesson-022-acceptance-criterion-delegated-to-a-dependency"
 type: lesson
 status: active
+title: "An acceptance criterion backed only by a dependency's behaviour is not enforced"
 created: "2026-09-05"
 owner: manu
 tags: [garsync, lesson, testing, cors, dependencies, security]

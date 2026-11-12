@@ -1,7 +1,8 @@
 ---
-id: lesson-014-pytest-q-flag-suppresses-the-summary-line
+id: "lesson-014-pytest-q-flag-suppresses-the-summary-line"
 type: lesson
 status: active
+title: "Pytest `-q` Flag Suppresses the Summary Line"
 created: "2026-05-29"
 recorded: "2026-03-01"
 owner: manu

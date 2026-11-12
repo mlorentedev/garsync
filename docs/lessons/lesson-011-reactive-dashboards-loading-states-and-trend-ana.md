@@ -1,7 +1,8 @@
 ---
-id: lesson-011-reactive-dashboards-loading-states-and-trend-ana
+id: "lesson-011-reactive-dashboards-loading-states-and-trend-ana"
 type: lesson
 status: active
+title: "Reactive Dashboards: Loading States and Trend Analysis"
 created: "2026-05-29"
 recorded: "2026-03-07"
 owner: manu

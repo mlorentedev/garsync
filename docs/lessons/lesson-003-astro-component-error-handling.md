@@ -1,7 +1,8 @@
 ---
-id: lesson-003-astro-component-error-handling
+id: "lesson-003-astro-component-error-handling"
 type: lesson
 status: active
+title: "Astro component error handling"
 created: "2026-05-29"
 owner: manu
 tags: [garsync, lesson, astro, error-handling]

@@ -1,14 +1,15 @@
 ---
-id: lesson-037-sops-reads-an-unknown-extension-as-binary-and-its-envelope-is-json
+id: "lesson-037-sops-reads-an-unknown-extension-as-binary-and-its-envelope-is-json"
 type: lesson
 status: active
+title: "sops reads an unknown extension as binary, and the binary envelope is JSON"
 created: "2026-10-06"
 owner: manu
 tags: [sops, secrets, docs, gotcha]
 related: [lesson-036-a-make-conditional-assignment-loses-to-the-shell-environment]
 ---
 
-# Lesson 037 — sops reads an unknown extension as binary, and the binary envelope is JSON
+# sops reads an unknown extension as binary, and the binary envelope is JSON
 
 **Context:** The README and the docs site told a new user to edit secrets with
 `sops secrets.env.enc`. The Makefile's own `sync` recipe always passed

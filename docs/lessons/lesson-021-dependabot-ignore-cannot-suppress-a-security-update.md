@@ -1,14 +1,15 @@
 ---
-id: lesson-021-dependabot-ignore-cannot-suppress-a-security-update
+id: "lesson-021-dependabot-ignore-cannot-suppress-a-security-update"
 type: lesson
 status: active
+title: "A Dependabot `update-types` ignore cannot suppress a security update"
 created: "2026-09-24"
 owner: manu
 tags: [dependabot, security, npm, ci, gotcha]
 related: [lesson-019-dependabot-group-can-smuggle-major-bumps-red-ci]
 ---
 
-# Lesson 021 — A Dependabot `update-types` ignore cannot suppress a security update
+# A Dependabot `update-types` ignore cannot suppress a security update
 
 ## Context
 

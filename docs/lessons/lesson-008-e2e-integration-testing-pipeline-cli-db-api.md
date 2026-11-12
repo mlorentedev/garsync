@@ -1,7 +1,8 @@
 ---
-id: lesson-008-e2e-integration-testing-pipeline-cli-db-api
+id: "lesson-008-e2e-integration-testing-pipeline-cli-db-api"
 type: lesson
 status: active
+title: "E2E Integration Testing Pipeline (CLI -> DB -> API)"
 created: "2026-05-29"
 recorded: "2026-03-07"
 owner: manu

@@ -1,7 +1,8 @@
 ---
-id: lesson-027-sqlite-commits-ddl-outside-an-explicit-transaction
+id: "lesson-027-sqlite-commits-ddl-outside-an-explicit-transaction"
 type: lesson
 status: active
+title: "SQLite commits DDL outside an explicit transaction, and SQLAlchemy rolls back what it did not open"
 created: "2026-09-25"
 owner: manu
 tags: [garsync, lesson, sqlite, sqlalchemy, alembic, transactions, gotcha]

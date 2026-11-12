@@ -1,7 +1,8 @@
 ---
-id: lesson-020-npm-scoped-overrides-apply-to-whole-subtree
+id: "lesson-020-npm-scoped-overrides-apply-to-whole-subtree"
 type: lesson
 status: active
+title: "Lesson-020: npm scoped overrides apply to the whole dependency subtree, not just the named package"
 created: "2026-09-07"
 owner: manu
 tags: [garsync, lesson, npm, dependencies]

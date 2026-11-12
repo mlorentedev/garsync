@@ -1,7 +1,8 @@
 ---
-id: lesson-001-garmin-api-response-format-inconsistencies
+id: "lesson-001-garmin-api-response-format-inconsistencies"
 type: lesson
 status: active
+title: "Garmin API response format inconsistencies"
 created: "2026-05-29"
 owner: manu
 tags: [garsync, lesson, garmin-api, client]

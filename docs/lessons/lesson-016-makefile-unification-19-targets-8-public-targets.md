@@ -1,7 +1,8 @@
 ---
-id: lesson-016-makefile-unification-19-targets-8-public-targets
+id: "lesson-016-makefile-unification-19-targets-8-public-targets"
 type: lesson
 status: active
+title: "Makefile Unification: 19 Targets → 8 Public Targets"
 created: "2026-05-29"
 recorded: "2026-03-01"
 owner: manu

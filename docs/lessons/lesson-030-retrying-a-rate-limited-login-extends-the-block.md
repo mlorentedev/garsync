@@ -1,7 +1,8 @@
 ---
-id: lesson-030-retrying-a-rate-limited-login-extends-the-block
+id: "lesson-030-retrying-a-rate-limited-login-extends-the-block"
 type: lesson
 status: active
+title: "Retrying a rate-limited login extends the block"
 created: "2026-09-25"
 owner: manu
 tags: [garsync, lesson, garmin, rate-limits, retries, ingestion, ops]

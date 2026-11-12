@@ -1,7 +1,8 @@
 ---
-id: lesson-023-grep-in-a-make-target-turns-a-failure-into-a-green-line
+id: "lesson-023-grep-in-a-make-target-turns-a-failure-into-a-green-line"
 type: lesson
 status: active
+title: "A `grep` in a make target turns a failing check into a green line"
 created: "2026-09-25"
 owner: manu
 tags: [garsync, lesson, makefile, ci, gates, gotcha]

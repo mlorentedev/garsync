@@ -1,7 +1,8 @@
 ---
-id: lesson-029-a-pragma-you-did-not-set-may-already-be-set-by-the-driver
+id: "lesson-029-a-pragma-you-did-not-set-may-already-be-set-by-the-driver"
 type: lesson
 status: active
+title: "A pragma you did not set may already be set by the driver"
 created: "2026-09-25"
 owner: manu
 tags: [garsync, lesson, sqlite, verification, defaults, measurement, gotcha]

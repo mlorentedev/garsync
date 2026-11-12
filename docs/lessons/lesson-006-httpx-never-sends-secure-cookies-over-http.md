@@ -1,7 +1,8 @@
 ---
-id: lesson-006-httpx-never-sends-secure-cookies-over-http
+id: "lesson-006-httpx-never-sends-secure-cookies-over-http"
 type: lesson
 status: active
+title: "httpx never sends `Secure` cookies over `http://`"
 created: "2026-09-05"
 owner: manu
 tags: [garsync, lesson, testing, httpx, cookies]

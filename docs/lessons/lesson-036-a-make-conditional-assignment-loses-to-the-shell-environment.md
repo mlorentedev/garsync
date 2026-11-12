@@ -1,14 +1,15 @@
 ---
-id: lesson-036-a-make-conditional-assignment-loses-to-the-shell-environment
+id: "lesson-036-a-make-conditional-assignment-loses-to-the-shell-environment"
 type: lesson
 status: active
+title: "`VAR ?= value` in a Makefile loses to the same variable exported by the shell"
 created: "2026-10-06"
 owner: manu
 tags: [makefile, sops, age, secrets, gotcha]
 related: [lesson-004-sops-rotate-i-merges-recipients-instead-of-repla]
 ---
 
-# Lesson 036 — `VAR ?= value` in a Makefile loses to the same variable exported by the shell
+# `VAR ?= value` in a Makefile loses to the same variable exported by the shell
 
 **Context:** The Makefile pinned garsync's dedicated age identity with
 `export SOPS_AGE_KEY_FILE ?= /home/manu/.config/age/garsync.txt`. The dotfiles export

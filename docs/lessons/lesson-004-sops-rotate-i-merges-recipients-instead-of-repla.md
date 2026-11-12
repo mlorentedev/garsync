@@ -1,7 +1,8 @@
 ---
-id: lesson-004-sops-rotate-i-merges-recipients-instead-of-repla
+id: "lesson-004-sops-rotate-i-merges-recipients-instead-of-repla"
 type: lesson
 status: active
+title: "`sops --rotate -i` MERGES recipients instead of replacing them"
 created: "2026-09-05"
 owner: manu
 tags: [garsync, lesson, sops, age, secrets]

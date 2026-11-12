@@ -1,7 +1,8 @@
 ---
-id: lesson-032-a-coverage-ratchet-raised-in-the-closing-block-is-a-ratchet-that-lags
+id: "lesson-032-a-coverage-ratchet-raised-in-the-closing-block-is-a-ratchet-that-lags"
 type: lesson
 status: active
+title: "A coverage ratchet raised in the closing block is a ratchet that lags"
 created: "2026-09-25"
 owner: manu
 tags: [garsync, lesson, coverage, ci, testing, gotcha]

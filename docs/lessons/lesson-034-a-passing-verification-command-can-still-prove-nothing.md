@@ -1,7 +1,8 @@
 ---
-id: lesson-034-a-passing-verification-command-can-still-prove-nothing
+id: "lesson-034-a-passing-verification-command-can-still-prove-nothing"
 type: lesson
 status: active
+title: "A passing verification command can still prove nothing"
 created: "2026-09-25"
 owner: manu
 tags: [garsync, lesson, testing, spec-driven-development, verification, tooling]

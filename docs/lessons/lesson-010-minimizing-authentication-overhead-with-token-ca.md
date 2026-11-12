@@ -1,7 +1,8 @@
 ---
-id: lesson-010-minimizing-authentication-overhead-with-token-ca
+id: "lesson-010-minimizing-authentication-overhead-with-token-ca"
 type: lesson
 status: active
+title: "Minimizing Authentication Overhead with Token Caching"
 created: "2026-05-29"
 recorded: "2026-03-07"
 owner: manu

@@ -1,7 +1,8 @@
 ---
-id: lesson-019-dependabot-group-can-smuggle-major-bumps-red-ci
+id: "lesson-019-dependabot-group-can-smuggle-major-bumps-red-ci"
 type: lesson
 status: active
+title: "Lesson-019: A grouped dependabot update can smuggle major bumps — red CI on a bump-only change"
 created: "2026-09-07"
 owner: manu
 tags: [garsync, lesson, dependabot, ci, npm]
