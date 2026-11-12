@@ -54,7 +54,8 @@
       "login": "github-actions",
       "declined_markers": [],
       "review_markers": [
-        "## PR Reviewer Guide"
+        "## PR Reviewer Guide",
+        "## Incremental PR Reviewer Guide"
       ],
       "why": "PR-Agent (see .github/workflows/pr-agent.yml) runs under GITHUB_TOKEN and publishes through the COMMENTS api, so its reviews never enter reviews[] and a classifier that looked only at reviews would read every PR-Agent-reviewed PR as unattested. The marker is the `review` command's own heading. `## PR Code Suggestions` is deliberately NOT here: suggestions are not a review, which is also why auto_improve is off on the automatic path. MARKER PROVENANCE: verified in the sibling ports before being declared here (kubelab has 215 PR comments carrying '## PR Reviewer Guide' posted by github-actions[bot], dotfiles 172, per ts-bridge #315). It has NEVER been observed in garsync, because this workflow has not run here and the NAN_API_KEY secret it needs is not set yet (Actions secrets on 2026-09-06: BITACORA_PAT only). Until the owner runs `dotf secrets sync ci --repo mlorentedev/garsync` and a pr-agent run publishes the Guide, this entry is a declaration of intent, not of an actor. github-actions[bot] also authors the release-please PRs here (#52), which is why the release exemption below is keyed on diff signature and not on this login."
     }
