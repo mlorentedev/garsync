@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/mlorentedev/garsync/compare/v0.3.2...v0.4.0) (2026-11-13)
+
+
+### Features
+
+* **ingest:** an ingest ledger, atomic runs and idempotent writes ([#131](https://github.com/mlorentedev/garsync/issues/131)) ([a15f62a](https://github.com/mlorentedev/garsync/commit/a15f62a28e85a08665bdfc82b6c4548157968194))
+
 ## [0.3.2](https://github.com/mlorentedev/garsync/compare/v0.3.1...v0.3.2) (2026-10-07)
 
 
