@@ -8,7 +8,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Install Python dependencies
-FROM python:3.12-slim AS builder
+FROM python:3.15-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV POETRY_VERSION=2.0.0
@@ -26,7 +26,7 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry install --only main --no-root
 
 # Stage 3: Runtime
-FROM python:3.12-slim
+FROM python:3.15-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
